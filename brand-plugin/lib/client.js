@@ -40,10 +40,141 @@ window.__ModuleLoader__.load({
 			"font-family:var(--dsw-font-family,-apple-system,BlinkMacSystemFont,sans-serif);",
 			"font-size:15px;font-weight:500;letter-spacing:-.01em;",
 			"color:var(--dsw-alias-label-primary);line-height:1;white-space:nowrap}",
+
+			/* Settings page. Everything is expressed with the official tokens so
+			 * it follows whatever theme is active rather than hard-coding the
+			 * Claude palette -- this plugin is about the name, not the colours. */
+			".dcb-sec{display:flex;flex-direction:column;gap:20px;padding:4px 0 8px}",
+			".dcb-row{display:flex;flex-direction:column;gap:8px}",
+			".dcb-lbl{font-size:13px;font-weight:500;color:var(--dsw-alias-label-primary)}",
+			".dcb-hint{font-size:12px;color:var(--dsw-alias-label-tertiary);line-height:1.5}",
+			".dcb-in{",
+			"font-family:var(--dsw-font-family,inherit);font-size:14px;",
+			"padding:8px 12px;border-radius:10px;",
+			"color:var(--dsw-alias-label-primary);",
+			"background:var(--dsw-alias-bg-base);",
+			"border:1px solid var(--dsw-alias-border-l2);",
+			"outline:none;width:100%;box-sizing:border-box}",
+			".dcb-in:focus{border-color:var(--dsw-alias-brand-primary)}",
+			".dcb-avrow{display:flex;align-items:center;gap:14px}",
+			".dcb-av{",
+			"width:56px;height:56px;border-radius:50%;flex:none;overflow:hidden;",
+			"display:grid;place-items:center;",
+			"background:var(--dsw-alias-bg-base);",
+			"border:1px solid var(--dsw-alias-border-l2)}",
+			".dcb-av img{width:100%;height:100%;object-fit:cover;display:block}",
+			".dcb-av svg{opacity:.45}",
+			".dcb-preview{",
+			"display:flex;align-items:center;gap:10px;",
+			"padding:14px 16px;border-radius:12px;",
+			"background:var(--dsw-alias-bg-base);",
+			"border:1px solid var(--dsw-alias-border-l2)}",
+			".dcb-preview .mark{flex:none;color:var(--dsw-alias-brand-primary);display:flex}",
+			".dcb-preview .line{",
+			"font-family:var(--dsw-font-family,inherit);font-size:15px;",
+			"color:var(--dsw-alias-label-primary)}",
+
+			/* The sidebar foot row. Sized to match the Settings control it sits
+			 * above so the two read as one stack. */
+			".dcb-foot{",
+			"display:flex;align-items:center;gap:10px;",
+			"padding:8px 10px;border-radius:10px;",
+			"font-family:var(--dsw-font-family,inherit);",
+			"color:var(--dsw-alias-label-primary);",
+			"min-width:0}",
+			".dcb-foot-rail{justify-content:center;padding:8px 0;gap:0}",
+			".dcb-foot-av{",
+			"width:24px;height:24px;border-radius:50%;flex:none;overflow:hidden;",
+			"display:grid;place-items:center;",
+			"background:var(--dsw-alias-bg-base);",
+			"border:1px solid var(--dsw-alias-border-l2)}",
+			".dcb-foot-av img{width:100%;height:100%;object-fit:cover;display:block}",
+			".dcb-foot-av svg{opacity:.6}",
+			".dcb-foot-name{",
+			"font-size:13px;font-weight:500;letter-spacing:-.01em;",
+			"overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}",
 		].join("");
 
-		/* Claude greets by time of day rather than by name. */
-		function greeting() {
+		/* ------------------------------------------------------------------
+		 * Display name and avatar.
+		 *
+		 * Purely cosmetic: this is a label for the greeting and the sidebar
+		 * foot, not an account. There is no identity behind it and nothing
+		 * reads it but this plugin. Kept in localStorage because that is what
+		 * the shipped UI plugins use for browser-local preferences, and a
+		 * static client half has no other place to put it.
+		 * ------------------------------------------------------------------ */
+		var STORE_KEY = "dsh-claude-brand.prefs";
+
+		function readPrefs() {
+			var empty = { name: "", avatar: "" };
+			try {
+				if (typeof localStorage === "undefined") return empty;
+				var raw = localStorage.getItem(STORE_KEY);
+				if (raw === null) return empty;
+				var parsed = JSON.parse(raw);
+				if (typeof parsed !== "object" || parsed === null) return empty;
+				return {
+					name: typeof parsed.name === "string" ? parsed.name.slice(0, 24) : "",
+					avatar: typeof parsed.avatar === "string" ? parsed.avatar : "",
+				};
+			} catch (e) {
+				return empty;
+			}
+		}
+
+		function writePrefs(next) {
+			try {
+				if (typeof localStorage !== "undefined") {
+					localStorage.setItem(STORE_KEY, JSON.stringify(next));
+				}
+			} catch (e) { /* storage full or blocked; the UI still updates */ }
+			subscribers.forEach(function (fn) { try { fn(); } catch (e) {} });
+		}
+
+		var subscribers = new Set();
+
+		function subscribe(fn) {
+			subscribers.add(fn);
+			return function () { subscribers.delete(fn); };
+		}
+
+		/* Re-read on every notification so several mounted surfaces agree. */
+		function usePrefs() {
+			var pair = React.useState(readPrefs);
+			var prefs = pair[0], setPrefs = pair[1];
+			React.useEffect(function () {
+				return subscribe(function () { setPrefs(readPrefs()); });
+			}, []);
+			return prefs;
+		}
+
+		var ROTATION_KEY = "dsh-claude-brand.rotation";
+
+		/* The rotation step is drawn ONCE per page load and then held.
+		 *
+		 * greetingLine() is called from the mutation observer, so advancing the
+		 * counter there would burn through all two dozen lines in the first
+		 * second the app re-renders. Drawing it here instead makes the line
+		 * stable for the lifetime of the tab and lets it change on the next
+		 * load -- which is what "cycle through them" should mean. */
+		var rotationStep = null;
+
+		function currentStep() {
+			if (rotationStep !== null) return rotationStep;
+			var n = 0;
+			try {
+				if (typeof localStorage !== "undefined") {
+					n = parseInt(localStorage.getItem(ROTATION_KEY) || "0", 10) || 0;
+					localStorage.setItem(ROTATION_KEY, String(n + 1));
+				}
+			} catch (e) { /* rotation is decoration; never fail on it */ }
+			rotationStep = n;
+			return n;
+		}
+
+		/* Claude greets by time of day. */
+		function timeGreeting() {
 			var hh = new Date().getHours();
 			if (hh < 5) return "夜深了";
 			if (hh < 11) return "早上好";
@@ -52,15 +183,60 @@ window.__ModuleLoader__.load({
 			return "晚上好";
 		}
 
+		/* Index 0 is the time-of-day greeting and is always what a first-time
+		 * visitor sees; later loads walk the rest of the list. */
+		var GREETINGS = [
+			null,
+			"准备好了就开始吧",
+			"新的一页。写点什么？",
+			"今天想做点什么？",
+			"有什么想聊的？",
+			"从哪里开始呢？",
+			"慢慢来，不着急",
+			"今天有什么计划？",
+			"我在这儿呢",
+			"有什么想法吗？",
+			"开始吧",
+			"来聊聊？",
+			"说吧，我听着",
+			"有什么需要帮忙的？",
+			"今天感觉怎么样？",
+			"要不要一起做点什么？",
+			"想到什么了？",
+			"随时可以开始",
+			"我准备好了",
+			"你来决定",
+			"想从哪儿说起？",
+			"有什么新鲜事？",
+			"又是新的一天",
+			"等你开口呢",
+		];
+
+		function greetingLine() {
+			var base = GREETINGS[currentStep() % GREETINGS.length];
+			if (base === null) base = timeGreeting();
+			var name = readPrefs().name;
+			return name ? base + "，" + name : base;
+		}
+
 		var HEADLINES = ["探索未至之境", "Into the Unknown"];
 		var PRODUCT = "DeepSeek Harness";
 		var BRAND = "Claude";
 
 		/* Rewrite the two strings no slot exposes: the hero headline and the
 		 * document title. Matched on the EXACT known value, never by substring,
-		 * and originals are kept so dispose() restores them. */
+		 * and originals are kept so dispose() restores them.
+		 *
+		 * The headline needs bookkeeping beyond the original text. Once this
+		 * writes a greeting the node stops matching HEADLINES, so a plain
+		 * "match the original" pass could never update it again -- renaming
+		 * yourself would leave the old name on screen until a reload. Each
+		 * claimed node therefore remembers both what it originally said and
+		 * what we last wrote; when the desired line changes we rewrite only if
+		 * the node still holds our own text (if it does not, the app has
+		 * re-rendered it and we let go). */
 		function installBrandText() {
-			var originals = new Map();
+			var claimed = new Map();
 			var busy = false;
 			var pending = false;
 
@@ -72,6 +248,19 @@ window.__ModuleLoader__.load({
 
 			function rewriteHeadline() {
 				if (!document.body) return;
+				var want = greetingLine();
+
+				/* Release nodes the app has replaced under us. */
+				claimed.forEach(function (state, node) {
+					if (node.nodeValue !== state.written) claimed.delete(node);
+				});
+
+				claimed.forEach(function (state, node) {
+					if (state.written === want) return;
+					node.nodeValue = want;
+					state.written = want;
+				});
+
 				var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null);
 				var node;
 				while ((node = walker.nextNode())) {
@@ -79,8 +268,10 @@ window.__ModuleLoader__.load({
 					if (!value) continue;
 					var trimmed = value.trim();
 					if (HEADLINES.indexOf(trimmed) === -1) continue;
-					if (!originals.has(node)) originals.set(node, value);
-					node.nodeValue = value.split(trimmed).join(greeting());
+					if (claimed.has(node)) continue;
+					var written = want;
+					node.nodeValue = written;
+					claimed.set(node, { original: value, written: written });
 				}
 			}
 
@@ -93,21 +284,37 @@ window.__ModuleLoader__.load({
 			function schedule() {
 				if (pending) return;
 				pending = true;
-				requestAnimationFrame(function () { pending = false; run(); });
+				/* The `pending` latch is cleared inside the frame callback. If the
+				 * frame never arrives -- a backgrounded tab, a headless run, an
+				 * engine that throttles rAF to zero -- the latch stays set and
+				 * every later mutation is dropped forever, which shows up as
+				 * "the greeting stopped updating after the first paint". Falling
+				 * back to a task clears it even when no frame comes. */
+				var cleared = false;
+				function release() {
+					if (cleared) return;
+					cleared = true;
+					pending = false;
+					run();
+				}
+				requestAnimationFrame(release);
+				Promise.resolve().then(release);
 			}
 
 			var observer = new MutationObserver(schedule);
 			observer.observe(document.documentElement, {
 				childList: true, subtree: true, characterData: true,
 			});
+			var unsubscribe = subscribe(schedule);
 			run();
 
 			return function () {
 				observer.disconnect();
-				originals.forEach(function (value, node) {
-					try { node.nodeValue = value; } catch (e) { /* node detached */ }
+				unsubscribe();
+				claimed.forEach(function (state, node) {
+					try { node.nodeValue = state.original; } catch (e) { /* node detached */ }
 				});
-				originals.clear();
+				claimed.clear();
 			};
 		}
 
@@ -158,6 +365,170 @@ window.__ModuleLoader__.load({
 			};
 		}
 
+		/* ------------------------------------------------------------------
+		 * Settings page: the display name and avatar.
+		 * ------------------------------------------------------------------ */
+
+		function Avatar(props) {
+			var prefs = props.prefs;
+			if (prefs.avatar) {
+				return h("img", { src: prefs.avatar, alt: "" });
+			}
+			return h(ClaudeMark, { size: Math.round(props.size || 24) });
+		}
+
+		function NameSection() {
+			var prefs = usePrefs();
+			var nameState = React.useState(prefs.name);
+			var name = nameState[0], setName = nameState[1];
+			var fileRef = React.useRef(null);
+
+			/* Keep the field in step when the stored value changes elsewhere. */
+			React.useEffect(function () { setName(prefs.name); }, [prefs.name]);
+
+			function commitName(value) {
+				var trimmed = value.trim().slice(0, 24);
+				setName(trimmed);
+				writePrefs({ name: trimmed, avatar: prefs.avatar });
+			}
+
+			/* The avatar is stored as a data URL rather than a file reference:
+			 * there is no upload endpoint here and the browser must be able to
+			 * paint it on the next load with no server involved. */
+			function pickAvatar(event) {
+				var file = event.target.files && event.target.files[0];
+				if (!file) return;
+				var reader = new FileReader();
+				reader.onload = function () {
+					writePrefs({ name: readPrefs().name, avatar: String(reader.result) });
+				};
+				reader.readAsDataURL(file);
+				event.target.value = "";
+			}
+
+			function clearAvatar() {
+				writePrefs({ name: readPrefs().name, avatar: "" });
+			}
+
+			var greeting = greetingLine();
+
+			return h(
+				"div",
+				{ className: "dcb-sec" },
+
+				h(
+					"div",
+					{ className: "dcb-row" },
+					h("div", { className: "dcb-lbl" }, "名字"),
+					h("input", {
+						className: "dcb-in",
+						type: "text",
+						value: name,
+						maxLength: 24,
+						placeholder: "留空则只显示问候语",
+						onChange: function (e) { commitName(e.target.value); },
+					}),
+					h(
+						"div",
+						{ className: "dcb-hint" },
+						"只用于首页问候语和侧栏底部，存在这台浏览器里，不会上传到任何地方。",
+					),
+				),
+
+				h(
+					"div",
+					{ className: "dcb-row" },
+					h("div", { className: "dcb-lbl" }, "头像"),
+					h(
+						"div",
+						{ className: "dcb-avrow" },
+						h("div", { className: "dcb-av" }, h(Avatar, { prefs: prefs, size: 30 })),
+						h(
+							"div",
+							{ style: { display: "flex", gap: "8px", flexWrap: "wrap" } },
+							h(
+								"button",
+								{
+									type: "button",
+									className: "dcb-in",
+									style: { width: "auto", cursor: "pointer" },
+									onClick: function () {
+										if (fileRef.current) fileRef.current.click();
+									},
+								},
+								"选择图片",
+							),
+							prefs.avatar
+								? h(
+										"button",
+										{
+											type: "button",
+											className: "dcb-in",
+											style: { width: "auto", cursor: "pointer" },
+											onClick: clearAvatar,
+										},
+										"移除",
+									)
+								: null,
+							h("input", {
+								ref: fileRef,
+								type: "file",
+								accept: "image/*",
+								style: { display: "none" },
+								onChange: pickAvatar,
+							}),
+						),
+					),
+					h("div", { className: "dcb-hint" }, "不选的话显示 Claude 星芒。图片以数据形式存在本地。"),
+				),
+
+				h(
+					"div",
+					{ className: "dcb-row" },
+					h("div", { className: "dcb-lbl" }, "预览"),
+					h(
+						"div",
+						{ className: "dcb-preview" },
+						h("span", { className: "mark" }, h(ClaudeMark, { size: 20 })),
+						h("span", { className: "line" }, greeting),
+					),
+					h(
+						"div",
+						{ className: "dcb-hint" },
+						"每次打开页面换一句，共 " + GREETINGS.length + " 句。",
+					),
+				),
+			);
+		}
+
+		/* ------------------------------------------------------------------
+		 * Sidebar foot: avatar + name, sitting directly above Settings.
+		 * ------------------------------------------------------------------ */
+
+		function ProfileRow(props) {
+			var prefs = usePrefs();
+			var wide = props && props.wide;
+
+			/* With nothing configured this row would be an empty 56px rail box,
+			 * so it renders nothing at all instead. */
+			if (!prefs.name && !prefs.avatar) return null;
+
+			if (!wide) {
+				return h(
+					"div",
+					{ className: "dcb-foot dcb-foot-rail", title: prefs.name || "" },
+					h("span", { className: "dcb-foot-av" }, h(Avatar, { prefs: prefs, size: 20 })),
+				);
+			}
+
+			return h(
+				"div",
+				{ className: "dcb-foot", title: prefs.name || "" },
+				h("span", { className: "dcb-foot-av" }, h(Avatar, { prefs: prefs, size: 22 })),
+				h("span", { className: "dcb-foot-name" }, prefs.name || ""),
+			);
+		}
+
 		function apply(ctx) {
 			ctx.effect(function () {
 				var el = document.createElement("style");
@@ -197,6 +568,33 @@ window.__ModuleLoader__.load({
 					{ name: "conversation.hero.brand.mark", priority: SHADOW },
 					function () { return h(ClaudeMark, { size: 32, color: "var(--dsw-alias-brand-primary)" }); },
 				);
+			});
+
+			/* A settings page of its own, alongside General / Models / Plugins.
+			 * `settings.section` is an additive list owned by the settings
+			 * shell, so registering here needs no priority and shadows nothing. */
+			slots.inject("settings.section", function () {
+				try {
+					return slots.register(
+						{ name: "settings.section", id: "claude", order: 50, label: "Claude" },
+						NameSection,
+					);
+				} catch (e) {
+					return function () {};
+				}
+			});
+
+			/* Avatar + name at the sidebar foot, in the strip the shell renders
+			 * just above Settings. Also additive. */
+			slots.inject("sidebar.footer.action", function () {
+				try {
+					return slots.register(
+						{ name: "sidebar.footer.action", id: "claude-profile", order: 10 },
+						ProfileRow,
+					);
+				} catch (e) {
+					return function () {};
+				}
 			});
 		}
 
