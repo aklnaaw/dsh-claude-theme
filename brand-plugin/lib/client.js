@@ -51,8 +51,6 @@ window.__ModuleLoader__.load({
 			".dcb-in{",
 			"font-family:var(--dsw-font-family,inherit);font-size:14px;",
 			"padding:8px 12px;border-radius:10px;",
-			"color:var(--dsw-alias-label-primary);",
-			"background:var(--dsw-alias-bg-base);",
 			"border:1px solid var(--dsw-alias-border-l2);",
 			"outline:none;width:100%;box-sizing:border-box}",
 			".dcb-in:focus{border-color:var(--dsw-alias-brand-primary)}",
@@ -60,15 +58,11 @@ window.__ModuleLoader__.load({
 			".dcb-av{",
 			"width:56px;height:56px;border-radius:50%;flex:none;overflow:hidden;",
 			"display:grid;place-items:center;",
-			"background:var(--dsw-alias-bg-base);",
-			"border:1px solid var(--dsw-alias-border-l2)}",
 			".dcb-av img{width:100%;height:100%;object-fit:cover;display:block}",
 			".dcb-av svg{opacity:.45}",
 			".dcb-preview{",
 			"display:flex;align-items:center;gap:10px;",
 			"padding:14px 16px;border-radius:12px;",
-			"background:var(--dsw-alias-bg-base);",
-			"border:1px solid var(--dsw-alias-border-l2)}",
 			".dcb-preview .mark{flex:none;color:var(--dsw-alias-brand-primary);display:flex}",
 			".dcb-preview .line{",
 			"font-family:var(--dsw-font-family,inherit);font-size:15px;",
@@ -80,14 +74,18 @@ window.__ModuleLoader__.load({
 			"display:flex;align-items:center;gap:10px;",
 			"padding:8px 10px;border-radius:10px;",
 			"font-family:var(--dsw-font-family,inherit);",
-			"color:var(--dsw-alias-label-primary);",
 			"min-width:0}",
 			".dcb-foot-rail{justify-content:center;padding:8px 0;gap:0}",
+			/* The row is a button: it must look like the Settings control it
+			 * sits above when hovered, and inherit the shell's font. */
+			".dcb-foot-open{",
+			"width:100%;background:none;border:0;cursor:pointer;text-align:left;",
+			"font-family:inherit}",
+			".dcb-foot-open:hover{background:var(--dsw-alias-interactive-bg-hover)}",
+			".dcb-foot-empty{color:var(--dsw-alias-label-tertiary);font-weight:400}",
 			".dcb-foot-av{",
 			"width:24px;height:24px;border-radius:50%;flex:none;overflow:hidden;",
 			"display:grid;place-items:center;",
-			"background:var(--dsw-alias-bg-base);",
-			"border:1px solid var(--dsw-alias-border-l2)}",
 			".dcb-foot-av img{width:100%;height:100%;object-fit:cover;display:block}",
 			".dcb-foot-av svg{opacity:.6}",
 			".dcb-foot-name{",
@@ -503,29 +501,66 @@ window.__ModuleLoader__.load({
 
 		/* ------------------------------------------------------------------
 		 * Sidebar foot: avatar + name, sitting directly above Settings.
+		 *
+		 * The row is ALWAYS rendered, even with nothing configured. An earlier
+		 * build hid it until a name was set, on the theory that an empty box is
+		 * worse than nothing -- but that left no way to discover the feature at
+		 * all. With nothing set it now shows the starburst and the words
+		 * 设置名字, and clicking it opens the Settings panel where the name and
+		 * avatar are edited. Nothing is edited in this row itself.
 		 * ------------------------------------------------------------------ */
+
+		/* Clicking the row opens the Settings panel.
+		 *
+		 * There is no service for this: the panel's open state lives in a React
+		 * component this plugin does not own, and nothing publishes a way to
+		 * set it. The dialog's trigger button is reachable in the DOM though --
+		 * it is the only element in the shell carrying aria-haspopup="dialog"
+		 * inside the sidebar's settings seat -- so the row defers to it rather
+		 * than duplicating the panel. */
+		function openSettings() {
+			var seat = document.querySelector('[data-slot="sidebar.settings"]');
+			var scope = seat || document;
+			var trigger = scope.querySelector('button[aria-haspopup="dialog"]');
+			if (trigger) { trigger.click(); return; }
+			/* Fall back to the whole document in case the seat is not marked. */
+			var any = document.querySelector('button[aria-haspopup="dialog"]');
+			if (any) any.click();
+		}
 
 		function ProfileRow(props) {
 			var prefs = usePrefs();
 			var wide = props && props.wide;
-
-			/* With nothing configured this row would be an empty 56px rail box,
-			 * so it renders nothing at all instead. */
-			if (!prefs.name && !prefs.avatar) return null;
+			var hasIdentity = !!(prefs.name || prefs.avatar);
+			var label = prefs.name || "设置名字";
 
 			if (!wide) {
 				return h(
-					"div",
-					{ className: "dcb-foot dcb-foot-rail", title: prefs.name || "" },
+					"button",
+					{
+						type: "button",
+						className: "dcb-foot dcb-foot-rail dcb-foot-open",
+						title: prefs.name ? prefs.name + " · 点击修改" : "点击设置名字",
+						onClick: openSettings,
+					},
 					h("span", { className: "dcb-foot-av" }, h(Avatar, { prefs: prefs, size: 20 })),
 				);
 			}
 
 			return h(
-				"div",
-				{ className: "dcb-foot", title: prefs.name || "" },
+				"button",
+				{
+					type: "button",
+					className: "dcb-foot dcb-foot-open",
+					title: hasIdentity ? "点击修改名字和头像" : "点击设置名字和头像",
+					onClick: openSettings,
+				},
 				h("span", { className: "dcb-foot-av" }, h(Avatar, { prefs: prefs, size: 22 })),
-				h("span", { className: "dcb-foot-name" }, prefs.name || ""),
+				h(
+					"span",
+					{ className: "dcb-foot-name" + (hasIdentity ? "" : " dcb-foot-empty") },
+					label,
+				),
 			);
 		}
 
