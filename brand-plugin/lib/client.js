@@ -73,6 +73,11 @@ window.__ModuleLoader__.load({
 			"font-family:var(--dsw-font-family,inherit);font-size:15px;",
 			"color:var(--dsw-alias-label-primary)}",
 
+			/* The wrapper exists only to keep the trigger and the editor as
+			 * siblings in the React tree; it carries no look of its own. */
+			".dcb-foot-wrap{display:block;width:100%;min-width:0}",
+			".dcb-foot-wrap-rail{width:auto}",
+
 			/* The sidebar foot row: a round avatar, then a two-line stack of name
 			 * and caption, then a chevron at the far edge -- the arrangement the
 			 * account row uses in the app being imitated. It is a button across
@@ -776,41 +781,50 @@ window.__ModuleLoader__.load({
 			var open = openState[0], setOpen = openState[1];
 			var btnRef = React.useRef(null);
 
-			if (!wide) {
-				return h(
-					"button",
-					{
-						ref: btnRef,
-						type: "button",
-						className: "dcb-foot dcb-foot-rail",
-						title: prefs.name ? prefs.name + " · 点击修改" : "点击设置名字",
-						onClick: function () { setOpen(!open); },
-					},
-					h("span", { className: "dcb-foot-av" }, h(Avatar, { prefs: prefs, size: 18 })),
-					open ? h(Editor, { anchor: btnRef.current, onClose: function () { setOpen(false); } }) : null,
-				);
-			}
-
-			/* The caption line falls back to a prompt rather than disappearing,
-			 * so the stack keeps its height and the row does not jump once a
-			 * name is typed. */
-			return h(
+			/* The editor is a SIBLING of the trigger, never its child.
+			 *
+			 * A portal moves an element in the DOM but not in the React tree,
+			 * and React keeps event propagation along the React tree. Nested
+			 * inside the trigger, every click in the editor -- including into
+			 * the caption field -- bubbled to the trigger's own onClick and
+			 * toggled the popover shut again. Wrapping both in a plain div is
+			 * what actually separates them; stopPropagation would only have
+			 * hidden the symptom, and interactive content inside a <button> is
+			 * invalid markup regardless. */
+			var trigger = h(
 				"button",
 				{
 					ref: btnRef,
 					type: "button",
-					className: "dcb-foot",
-					title: "点击修改名字和头像",
+					className: wide ? "dcb-foot" : "dcb-foot dcb-foot-rail",
+					title: wide
+						? "点击修改名字和头像"
+						: (prefs.name ? prefs.name + " · 点击修改" : "点击设置名字"),
 					onClick: function () { setOpen(!open); },
 				},
-				h("span", { className: "dcb-foot-av" }, h(Avatar, { prefs: prefs, size: 24 })),
 				h(
 					"span",
-					{ className: "dcb-foot-text" },
-					h("span", { className: "dcb-foot-name" }, prefs.name || "未命名"),
-					h("span", { className: "dcb-foot-sub" }, prefs.sub || "点击设置"),
+					{ className: "dcb-foot-av" },
+					h(Avatar, { prefs: prefs, size: wide ? 24 : 18 }),
 				),
-				h("span", { className: "dcb-foot-chev" }, h(Chevron, { open: open })),
+				wide
+					? h(
+							"span",
+							{ className: "dcb-foot-text" },
+							h("span", { className: "dcb-foot-name" }, prefs.name || "未命名"),
+							/* The caption falls back to a prompt rather than
+							 * disappearing, so the stack keeps its height and
+							 * the row does not jump once a name is typed. */
+							h("span", { className: "dcb-foot-sub" }, prefs.sub || "点击设置"),
+						)
+					: null,
+				wide ? h("span", { className: "dcb-foot-chev" }, h(Chevron, { open: open })) : null,
+			);
+
+			return h(
+				"div",
+				{ className: wide ? "dcb-foot-wrap" : "dcb-foot-wrap dcb-foot-wrap-rail" },
+				trigger,
 				open ? h(Editor, { anchor: btnRef.current, onClose: function () { setOpen(false); } }) : null,
 			);
 		}
