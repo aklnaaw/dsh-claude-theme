@@ -23,7 +23,7 @@
   --cl-crab-w: 48px;
   --cl-crab-h: 36px;
   /* Composer crab is the reference's 36x24-ish footprint. 1 = native size. */
-  --cl-crab-k: .75;
+  --cl-crab-k: .85;
 }
 
 body[data-ds-dark-theme] {
@@ -76,7 +76,8 @@ body[data-ds-dark-theme] {
 }
 
 /* ---- A. Composer crab -----------------------------------------------------
- * Stands ON the composer's top edge, right-aligned, while a turn is streaming.
+ * Stands ON the composer's top edge, right-aligned, at all times; while a
+ * turn streams it bobs instead of merely blinking.
  * Non-interactive by construction: it is a pseudo-element, so it is not
  * focusable, not clickable, and needs no creation or cleanup code. The
  * reference makes the same choice deliberately — a mascot that looks clickable
@@ -88,22 +89,47 @@ body[data-ds-dark-theme] {
 }
 
 [data-composer-card]::after {
-  /* Element origin sits so that the art's BOTTOM edge meets the card's top
-     edge: art_bottom = origin_top - art_height (y grows downward from origin). */
-  bottom: calc(100% + var(--cl-crab-h) * var(--cl-crab-k) - var(--cl-crab-cell));
+  /* POSITIONING IS EXPLICIT ON PURPOSE.
+   *
+   * The art is drawn DOWNWARD from the element's origin by box-shadow, so
+   *     art_bottom = element_top + (art_height * scale)
+   * and the crab stands on the line when that equals the card's outer top edge:
+   *     top = -(art_height * scale) - 1px     (-1px sinks it onto the border)
+   *
+   * An earlier version used `bottom: 100%` plus `transform: translateY(-100%)`,
+   * which is relative to the element's OWN height. If that height ever fails to
+   * apply, the percentage collapses to zero and the art is painted downward
+   * INTO the card — the crab appears inside the input box. Explicit values
+   * cannot fail that way. */
+  top: calc(-1 * var(--cl-crab-h) * var(--cl-crab-k) - 1px);
+  bottom: auto;
   left: auto;
-  right: 18px;
+  right: 32px;
   box-shadow: var(--crab-f-open);
   transform: scale(var(--cl-crab-k));
-  opacity: 0;
+  /* Always present: the crab is company, not a progress spinner. It idles on
+     the composer edge and only ADDS the bob while a turn is streaming, so it
+     is visible in a normal session rather than only mid-generation. */
+  opacity: .9;
+  animation: crab-idle-frames 3s step-end infinite;
   transition: opacity 220ms ease;
 }
 
+/* While generating it bobs, on top of the idle blink. */
 body:has([data-streaming]) [data-composer-card]::after,
 body:has([data-chat-flow-kind][data-streaming]) [data-composer-card]::after {
-  opacity: .9;
+  opacity: 1;
   animation: crab-bob 780ms ease-in-out infinite,
              crab-idle-frames 3s step-end infinite;
+}
+
+/* The interactive crab (crab-plugin/) owns the composer position once it is
+ * installed, because a pseudo-element cannot be clicked, focused or spoken to.
+ * It sets this marker attribute; when present, the inert crab stands down so
+ * there is exactly one Clawd. Without the plugin, this never matches and the
+ * static crab remains the (non-interactive) fallback. */
+body[data-clawd-interactive] [data-composer-card]::after {
+  content: none !important;
 }
 
 @keyframes crab-bob {

@@ -239,7 +239,36 @@ body:is([data-dsh-backdrop-active], [data-dsh-wallpaper-active]) [data-dsh-surfa
 }
 
 /* ---------------------------------------------------------------------------
- * 11. Reduced motion
+ * 11. Make room for the crab
+ *
+ * The queued-message dock (插话) is the composer stack's other row: it sits
+ * directly ABOVE the composer card and, like the card, spans the full width.
+ * Clawd stands on the card's top-right, so the two collide — the crab covered
+ * the dock's right end, which is where the per-row edit/delete buttons live.
+ *
+ * Shortening the dock is safe because its row is already built for it:
+ *   .row      display:flex, width:100%
+ *   .preview  overflow:hidden + text-overflow:ellipsis  -> the text truncates
+ *   .actions  flex:none                                 -> buttons never squash
+ * So the dock simply ends before the crab, and nothing becomes unreachable.
+ *
+ * Clearance maths: the crab is anchored at right:32px and is ~41px wide, so it
+ * occupies the rightmost ~73px. 80px leaves a small breathing gap.
+ * WIDTH_VAR is exposed so this is tunable without hunting the number down.
+ *
+ * `[data-queue-dock]` is the owner's own semantic attribute (NOT a CSS-Modules
+ * hash), so this survives a DSH rebuild.
+ * ------------------------------------------------------------------------- */
+:root {
+  --cl-crab-clearance: 80px;
+}
+
+[data-queue-dock] {
+  width: calc(100% - var(--cl-crab-clearance));
+}
+
+/* ---------------------------------------------------------------------------
+ * 12. Reduced motion
  * ------------------------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
   button, [role="button"], [role="tab"], a, ::-webkit-scrollbar-thumb {

@@ -8,6 +8,7 @@
 | --- | --- | --- | --- |
 | 皮肤 | `claude/` | 拷贝到 `$DSH_HOME/skins/claude/`，在设置里选中 | 配色、字体、圆角、组件外观 |
 | 品牌插件 | `brand-plugin/` | `dsh plugin --profile web add link:<绝对路径>` + 重启 | 替换 DSH 鲸鱼标志与品牌文案 |
+| 蟹插件 | `crab-plugin/` | `dsh plugin --profile web add link:<绝对路径>` + 重启 | 输入框上沿那只**可点**的 Clawd：跟随鼠标、会眨眼、戳了会说话 |
 
 皮肤是纯资源目录，由已安装的皮肤中心插件 `@linxin666/dsh-client-ui-skin-center` 读取和渲染，本身不含任何可执行代码。品牌替换做不了皮肤的一部分（原因见[已知限制](#已知限制)），所以拆成了一个独立的 Cordis 客户端插件。
 
@@ -31,7 +32,9 @@
 - **278 个 `--dsw-*` token 全部显式声明**，亮色与深色各覆盖一套（其中 97 个别名 token 在两种模式下同名不同值）。没有依赖加载器的 token 自动派生（原因见[已知限制](#已知限制)）。
 - **Newsreader 衬线正文**：markdown 正文、标题、引用走衬线体，界面外壳（按钮、菜单、标签）走 Inter，代码走 JetBrains Mono。
 - **暖黑深色模式**：`#181715`，不是纯黑。
-- **Clawd 像素蟹**：Claude Code 的官方吉祥物，画在三个位置（输入框生成状态 / 独立展示 / 问候语粒子）。**纯 CSS `box-shadow` 像素画**——不是图片、不发请求、不占资产体积，且完全跟随主题色。
+- **Clawd 像素蟹**：Claude Code 的官方吉祥物。**纯 CSS `box-shadow` 像素画**——不是图片、不发请求、不占资产体积，且完全跟随主题色。分两层：
+  - **皮肤层**（无需插件）：输入框上沿的常驻蟹（不可点，伪元素）、问候语像素粒子。
+  - **插件层**（`crab-plugin/`）：把同一只蟹换成**可交互**的真元素——眼睛跟随鼠标（四向帧）、空闲眨眼、戳一下会跳起来说一句话。装上插件后皮肤那只自动让位，永远只有一只。
 - **字体内置**：4 个 woff2、364 KB，全部自托管在皮肤目录内，不发起任何外部请求。
 - **圆角阶梯与药丸输入框**：`patches.css` 用 L3 自由选择器重排圆角、输入框、卡片与滚动条。
 - **第三方插件融合**：对非官方插件的界面做了一层中性化处理，使其跟随 Claude 的卡片语言而不是自带配色。
@@ -59,6 +62,8 @@ dsh-claude-theme/
 │   └── patches.base.css             # 手写的 L3 选择器层（patches.css 的输入）
 │       ├── light.jpg                #   1440×900
 │       └── dark.jpg                 #   1440×900
+├── crab-plugin/                     # 蟹插件（可交互 Clawd）
+├── pet/                             # 宠物系统用的 Clawd（图集 + 清单）
 ├── brand-plugin/                    # 品牌插件 dsh-claude-brand
 │   ├── package.json                 #   声明 dsh.bundle.patch 与 dsh.client.platform=web
 │   ├── cordis.patch.yml             #   向 web roster 插入 dsh-claude-brand 行

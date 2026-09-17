@@ -1,0 +1,4 @@
+# dsh-claude-crab bundle patch: inserts its dshClient row into the web roster.
+- insert:
+    - id: claude-crab
+      name: dsh-claude-crab
