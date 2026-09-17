@@ -159,6 +159,8 @@ dsh plugin --profile web add link:/path/to/dsh-claude-theme/brand-plugin
 
 完整的安装与排查步骤见 [`INSTALL.md`](INSTALL.md)。
 
+**嫌麻烦可以丢给dsh或者Claude Code和codex让他们装**
+
 ---
 
 ## 已知限制
