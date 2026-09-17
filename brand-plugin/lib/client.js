@@ -6,6 +6,7 @@ window.__ModuleLoader__.load({
 		Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
 
 		var React = require("react");
+		var reactDom = require("react-dom");
 		var h = React.createElement;
 
 		/* ------------------------------------------------------------------
@@ -99,6 +100,38 @@ window.__ModuleLoader__.load({
 			"font-size:11px;line-height:1.3;color:var(--dsw-alias-label-tertiary);",
 			"overflow:hidden;text-overflow:ellipsis;white-space:nowrap}",
 			".dcb-foot-chev{flex:none;display:flex;color:var(--dsw-alias-label-tertiary)}",
+
+			/* The editor popover. Fixed-positioned by inline style; the classes
+			 * here only carry its look, never its coordinates. */
+			".dcb-pop{",
+			"position:fixed;z-index:80;width:232px;",
+			"display:flex;flex-direction:column;gap:8px;padding:12px;",
+			"border-radius:12px;box-sizing:border-box;",
+			"font-family:var(--dsw-font-family,inherit);",
+			"background:var(--dsw-alias-bg-overlay,var(--dsw-alias-bg-base));",
+			"border:1px solid var(--dsw-alias-border-l2);",
+			"box-shadow:var(--dsw-shadow-lv2,0 8px 28px rgba(0,0,0,.18))}",
+			".dcb-pop-head{display:flex;align-items:center;gap:10px}",
+			".dcb-pop-av{",
+			"width:40px;height:40px;border-radius:50%;flex:none;overflow:hidden;",
+			"display:grid;place-items:center;",
+			"background:var(--dsw-alias-bg-base);",
+			"border:1px solid var(--dsw-alias-border-l2)}",
+			".dcb-pop-av img{width:100%;height:100%;object-fit:cover;display:block}",
+			".dcb-pop-av svg{opacity:.6}",
+			".dcb-pop-avbtns{display:flex;gap:6px;flex-wrap:wrap}",
+			".dcb-pop-foot{display:flex;justify-content:flex-end}",
+			".dcb-mini{",
+			"font-family:inherit;font-size:12px;cursor:pointer;",
+			"padding:5px 10px;border-radius:8px;",
+			"color:var(--dsw-alias-label-primary);",
+			"background:transparent;",
+			"border:1px solid var(--dsw-alias-border-l2)}",
+			".dcb-mini:hover{background:var(--dsw-alias-interactive-bg-hover)}",
+			".dcb-mini-go{",
+			"background:var(--dsw-alias-brand-primary);",
+			"border-color:var(--dsw-alias-brand-primary);",
+			"color:#fff}",
 		].join("");
 
 		/* ------------------------------------------------------------------
@@ -552,30 +585,16 @@ window.__ModuleLoader__.load({
 		 * avatar are edited. Nothing is edited in this row itself.
 		 * ------------------------------------------------------------------ */
 
-		/* Clicking the row opens the Settings panel.
-		 *
-		 * There is no service for this: the panel's open state lives in a React
-		 * component this plugin does not own, and nothing publishes a way to
-		 * set it. The dialog's trigger button is reachable in the DOM though --
-		 * it is the only element in the shell carrying aria-haspopup="dialog"
-		 * inside the sidebar's settings seat -- so the row defers to it rather
-		 * than duplicating the panel. */
-		function openSettings() {
-			var seat = document.querySelector('[data-slot="sidebar.settings"]');
-			var scope = seat || document;
-			var trigger = scope.querySelector('button[aria-haspopup="dialog"]');
-			if (trigger) { trigger.click(); return; }
-			/* Fall back to the whole document in case the seat is not marked. */
-			var any = document.querySelector('button[aria-haspopup="dialog"]');
-			if (any) any.click();
-		}
-
 		/* A small chevron, matching the affordance the account row carries in
 		 * the app being imitated. Drawn inline so it needs no icon package. */
-		function Chevron() {
+		function Chevron(props) {
 			return h(
 				"svg",
-				{ width: 12, height: 12, viewBox: "0 0 12 12", fill: "none", "aria-hidden": "true" },
+				{
+					width: 12, height: 12, viewBox: "0 0 12 12", fill: "none",
+					"aria-hidden": "true",
+					style: props && props.open ? { transform: "rotate(180deg)" } : undefined,
+				},
 				h("path", {
 					d: "M2.5 4.25 6 7.75l3.5-3.5",
 					stroke: "currentColor",
@@ -586,20 +605,189 @@ window.__ModuleLoader__.load({
 			);
 		}
 
+		/* ------------------------------------------------------------------
+		 * The editor popover.
+		 *
+		 * Portalled to document.body and positioned against the trigger's own
+		 * rect. It cannot be rendered inside the row: the sidebar is a scrolling
+		 * column and an ancestor clips overflow, so anything drawn there is cut
+		 * off at the column edge. `createPortal` is how the shipped menus handle
+		 * the same problem.
+		 *
+		 * Dismissal follows the shipped menus too: a mousedown outside closes it,
+		 * Escape closes it, and the listener is only attached while open.
+		 * ------------------------------------------------------------------ */
+		function Editor(props) {
+			var prefs = usePrefs();
+			var anchor = props.anchor;
+			var onClose = props.onClose;
+
+			var nameState = React.useState(prefs.name);
+			var name = nameState[0], setName = nameState[1];
+			var subState = React.useState(prefs.sub);
+			var sub = subState[0], setSub = subState[1];
+
+			var popRef = React.useRef(null);
+			var fileRef = React.useRef(null);
+			var posState = React.useState(null);
+			var pos = posState[0], setPos = posState[1];
+
+			/* Measure-then-place: the first pass renders hidden at the origin so
+			 * offsetWidth/offsetHeight are real, then the rect is computed. */
+			React.useEffect(function () {
+				if (!anchor) return;
+				var place = function () {
+					var r = anchor.getBoundingClientRect();
+					var el = popRef.current;
+					var w = el ? el.offsetWidth : 232;
+					var hgt = el ? el.offsetHeight : 240;
+					var left = Math.max(8, Math.min(r.left, window.innerWidth - w - 8));
+					/* Prefer above the row: the row sits at the very bottom of
+					 * the viewport, so below would run off screen. */
+					var top = r.top - hgt - 8;
+					if (top < 8) top = Math.min(r.bottom + 8, window.innerHeight - hgt - 8);
+					setPos({ left: left, top: top });
+				};
+				place();
+				window.addEventListener("resize", place);
+				return function () { window.removeEventListener("resize", place); };
+			}, [anchor]);
+
+			/* The dismissal listeners must not re-attach on every keystroke, so
+			 * `close` reads the latest values through a ref rather than closing
+			 * over the state it was created with. Re-subscribing per keystroke
+			 * would also leave a gap between remove and add in which a click
+			 * outside goes unnoticed. */
+			var latest = React.useRef({ name: name, sub: sub });
+			latest.current = { name: name, sub: sub };
+
+			function close() {
+				writePrefs({ name: latest.current.name.trim(), sub: latest.current.sub.trim() });
+				onClose();
+			}
+
+			React.useEffect(function () {
+				var onDown = function (event) {
+					if (popRef.current && popRef.current.contains(event.target)) return;
+					if (anchor && anchor.contains(event.target)) return;
+					close();
+				};
+				var onKey = function (event) { if (event.key === "Escape") close(); };
+				document.addEventListener("mousedown", onDown);
+				document.addEventListener("keydown", onKey);
+				return function () {
+					document.removeEventListener("mousedown", onDown);
+					document.removeEventListener("keydown", onKey);
+				};
+			}, [anchor]);
+
+			function pickAvatar(event) {
+				var file = event.target.files && event.target.files[0];
+				if (!file) return;
+				var reader = new FileReader();
+				reader.onload = function () { writePrefs({ avatar: String(reader.result) }); };
+				reader.readAsDataURL(file);
+				event.target.value = "";
+			}
+
+			return reactDom.createPortal(
+				h(
+					"div",
+					{
+						ref: popRef,
+						className: "dcb-pop",
+						role: "dialog",
+						"aria-label": "修改名字和头像",
+						style: pos === null
+							? { visibility: "hidden", left: 0, top: 0 }
+							: { left: pos.left + "px", top: pos.top + "px" },
+					},
+
+					h(
+						"div",
+						{ className: "dcb-pop-head" },
+						h("span", { className: "dcb-pop-av" }, h(Avatar, { prefs: prefs, size: 26 })),
+						h(
+							"div",
+							{ className: "dcb-pop-avbtns" },
+							h(
+								"button",
+								{
+									type: "button",
+									className: "dcb-mini",
+									onClick: function () { if (fileRef.current) fileRef.current.click(); },
+								},
+								"换头像",
+							),
+							prefs.avatar
+								? h(
+										"button",
+										{ type: "button", className: "dcb-mini", onClick: function () { writePrefs({ avatar: "" }); } },
+										"移除",
+									)
+								: null,
+						),
+					),
+
+					h("input", {
+						className: "dcb-in",
+						type: "text",
+						value: name,
+						maxLength: 24,
+						placeholder: "名字",
+						/* Deliberately untrimmed while typing: trimming on every
+						 * keystroke eats the space the moment it is typed, so a
+						 * name typed with a pause after a space can never hold
+						 * one. The stored value is trimmed on close instead. */
+						onChange: function (e) { setName(e.target.value); writePrefs({ name: e.target.value }); },
+					}),
+					h("input", {
+						className: "dcb-in",
+						type: "text",
+						value: sub,
+						maxLength: 32,
+						placeholder: "副标题（可留空）",
+						onChange: function (e) { setSub(e.target.value); writePrefs({ sub: e.target.value }); },
+					}),
+
+					h("input", {
+						ref: fileRef,
+						type: "file",
+						accept: "image/*",
+						style: { display: "none" },
+						onChange: pickAvatar,
+					}),
+
+					h(
+						"div",
+						{ className: "dcb-pop-foot" },
+						h("button", { type: "button", className: "dcb-mini dcb-mini-go", onClick: close }, "完成"),
+					),
+				),
+				document.body,
+			);
+		}
+
 		function ProfileRow(props) {
 			var prefs = usePrefs();
 			var wide = props && props.wide;
+
+			var openState = React.useState(false);
+			var open = openState[0], setOpen = openState[1];
+			var btnRef = React.useRef(null);
 
 			if (!wide) {
 				return h(
 					"button",
 					{
+						ref: btnRef,
 						type: "button",
 						className: "dcb-foot dcb-foot-rail",
 						title: prefs.name ? prefs.name + " · 点击修改" : "点击设置名字",
-						onClick: openSettings,
+						onClick: function () { setOpen(!open); },
 					},
 					h("span", { className: "dcb-foot-av" }, h(Avatar, { prefs: prefs, size: 18 })),
+					open ? h(Editor, { anchor: btnRef.current, onClose: function () { setOpen(false); } }) : null,
 				);
 			}
 
@@ -609,10 +797,11 @@ window.__ModuleLoader__.load({
 			return h(
 				"button",
 				{
+					ref: btnRef,
 					type: "button",
 					className: "dcb-foot",
 					title: "点击修改名字和头像",
-					onClick: openSettings,
+					onClick: function () { setOpen(!open); },
 				},
 				h("span", { className: "dcb-foot-av" }, h(Avatar, { prefs: prefs, size: 24 })),
 				h(
@@ -621,7 +810,8 @@ window.__ModuleLoader__.load({
 					h("span", { className: "dcb-foot-name" }, prefs.name || "未命名"),
 					h("span", { className: "dcb-foot-sub" }, prefs.sub || "点击设置"),
 				),
-				h("span", { className: "dcb-foot-chev" }, h(Chevron, null)),
+				h("span", { className: "dcb-foot-chev" }, h(Chevron, { open: open })),
+				open ? h(Editor, { anchor: btnRef.current, onClose: function () { setOpen(false); } }) : null,
 			);
 		}
 
