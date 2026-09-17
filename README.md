@@ -193,4 +193,4 @@ dsh plugin --profile web add link:/path/to/dsh-claude-theme/brand-plugin
 - 皮肤中心插件 [`@linxin666/dsh-client-ui-skin-center`](https://github.com/zhu1090093659/dsh-web)：提供了皮肤加载、清单校验、CSS 清洗与热切换的整套机制。
 - Newsreader、Inter、JetBrains Mono 的字型作者与 Google Fonts 的 latin 子集构建。
 - Anthropic 的 claude.ai 界面：本项目是照着它的观感做的复刻。
-- 酒馆扩展 [claude-web](https://github.com/claudenoshujin/claude-web)（作者 **lulu**）：Clawd 像素几何数据的来源，也是配色与观感的重要参照。
+- 酒馆扩展 [claude-web](https://github.com/claudenoshujin/claude-web)（作者 **claudenoshujin**）：Clawd 像素几何数据的来源，也是配色与观感的重要参照。
