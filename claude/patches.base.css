@@ -148,15 +148,20 @@ h1 { letter-spacing: -0.03em; }
  * 6. Tool-call cards — DSH-specific, so they get Claude's card language rather
  * than being left stock (which would read as cold grey blocks on cream).
  *
- * NO overflow:hidden HERE, on any of these nodes. It was added to clip child
- * backgrounds against the rounded corner, but the owner sets no overflow on
- * these nodes either, and clipping a node whose contents we do not control
- * risks hiding output. A skin must not be able to lose information.
+ * NO overflow:hidden on any of these nodes, and turn-process is not styled as a
+ * card at all.
  *
- * turn-process is not in this list at all: it is the thinking block, and the
- * owner folds it with the native `hidden="until-found"` attribute (see
- * useSearchableHidden in ui-chat). Touching that subtree's box made the
- * thinking text intermittently disappear, so we only colour it.
+ * The skin previously put `overflow:hidden` on tool-call, turn-process and
+ * workflow-run together, to clip child backgrounds against the rounded corner.
+ * That was removed for a simple reason that does not depend on any theory about
+ * the bug: these nodes carry content we do not control (tool output, thinking
+ * text), and clipping them can only ever lose information. A skin must not be
+ * able to do that. The owner sets no overflow here either.
+ *
+ * It is NOT established that this caused the reported "thinking sometimes not
+ * shown" bug — an A/B test of overflow:hidden against a control produced
+ * identical results, so that theory was not confirmed. See the note in the
+ * repository history; the fix stands on the principle, not on that diagnosis.
  * ------------------------------------------------------------------------- */
 [data-chat-flow-kind="tool-call"],
 [data-chat-flow-kind="workflow-run"] {
