@@ -6,250 +6,95 @@ window.__ModuleLoader__.load({
     Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
 
     /* =====================================================================
-     * Clawd — the interactive pixel crab.
+     * Clawd — the interactive pixel crab, as a plain DOM element.
      *
-     * The static skin already draws a crab as a CSS ::after on the composer.
-     * That one is deliberately inert (a pseudo-element cannot be clicked,
-     * focused or removed). THIS is the interactive one: a real element
-     * registered into `conversation.input.overlay`, which the composer renders
-     * inside `overlayAnchor` — an absolutely-positioned, zero-height strip
-     * pinned to the card's top edge. That is exactly where the crab stands.
+     * WHY NOT A SLOT OCCUPANT
+     * An earlier version registered a React component into
+     * `conversation.input.overlay`. The skin's fallback crab disappeared (so
+     * the plugin WAS loading), but no crab appeared — the occupant never
+     * rendered. A slot occupant that throws is swallowed by the renderer's
+     * error boundary, which makes that class of failure invisible.
      *
-     * The skin's ::after is suppressed from this plugin's stylesheet so the two
-     * do not double up.
+     * This version mounts the element directly and owns its whole lifecycle, so
+     * there is no React render path to fail silently. It also means the crab
+     * survives composer re-renders without depending on slot internals.
      *
-     * Everyone here is original to this project. The crab's pixel GEOMETRY is
-     * the mascot's own (credited to lulu / claude-web in the repo LICENSE);
-     * the behaviour below is ours.
+     * Trade-off, stated honestly: this couples to the composer's DOM contract
+     * (`[data-composer-card]`, which is an official attribute the conversation
+     * package emits) rather than to the slot system. If that attribute ever
+     * changes, the crab stops appearing — and the SKIN's fallback crab takes
+     * over, so the composer is never left empty.
+     *
+     * The crab's pixel GEOMETRY is the mascot's own (credited to lulu /
+     * claude-web in the repo LICENSE). Behaviour and CSS are original here.
      * ===================================================================== */
 
-    var React = require("react");
-    var h = React.createElement;
+    var SIZE = 0.85;
+    var ART_W = 48 * SIZE;   // 40.8
+    var ART_H = 36 * SIZE;   // 30.6
 
-    /* Frames carried by the skin, referenced by CSS custom property name so the
-     * art lives in one place. The crab reads its expression by swapping which
-     * variable the shadow uses — no geometry duplicated in JS. */
-    var FRAME = function (name) { return "var(--crab-f-" + name + ")"; };
-
-    /* Where the crab sits, relative to the card's top edge. */
-    var SIZE = 0.85;          // scale of the 48x36 native art
-
-    /* What Clawd says. Short, dry, Clawd-flavoured — not a chatbot voice.
-     * Kept in the plugin (not the skin) because it is behaviour, not styling. */
     var LINES = [
       "钳子在这儿呢。",
       "戳我干嘛，我正忙着发呆。",
       "别戳了，壳要掉了。",
       "……你这样我很难专注。",
       "海边的风不错，就是有点咸。",
-      "我什么都不想吃，谢谢。",
       "再戳一下我就夹你。",
       "在的，一直在的。",
       "咕噜。",
       "你的光标挡到我晒太阳了。",
+      "我什么都不想吃，谢谢。",
     ];
-
-    var LINES_SLEEPY = [
+    var SLEEPY = [
       "呼……呼……",
       "别吵，我在做螃蟹的梦。",
       "……嗯？你刚才说什么。",
     ];
 
-    /* Expression states. `look-*` are the eye-tracking frames the skin ships;
-     * `cheer`/`shut` are the reaction frames. */
-    var IDLE_FRAMES = ["open", "blink"];
+    /* Every coordinate is a plain number formatted once — no CSS calc() and no
+     * string arithmetic spread across the sheet. */
+    function px(n) { return (Math.round(n * 1000) / 1000) + "px"; }
 
-    /* ------------------------------------------------------------------ */
-    /* Styles — scoped to this plugin's own class names so they never leak. */
-    /* ------------------------------------------------------------------ */
     var CSS = [
-      /* Stand on the card's top edge, right-aligned. */
-      /* POSITIONING IS EXPLICIT ON PURPOSE.
-       *
-       * right:32px, NOT 18px: the card's border-radius is 26px, so anything
-       * inside ~26px of the corner stands on the curve and reads as floating.
-       *
-       * top is a computed negative, not `translateY(-100%)`: the art is painted
-       * DOWNWARD from the origin by box-shadow, so the feet land on the line at
-       *   top = -(art height * scale) - 1px
-       * A percentage transform depends on the element's own height; if that
-       * height ever fails to apply, the crab is drawn inside the card instead. */
-      ".clawd3d{position:absolute;right:32px;",
-      "top:calc(-1 * " + (36 * SIZE) + "px - 1px);",
-      "width:" + (48 * SIZE) + "px;height:" + (36 * SIZE) + "px;",
+      ".dcc-crab{position:absolute;right:32px;top:" + px(-ART_H - 1) + ";",
+      "width:" + px(ART_W) + ";height:" + px(ART_H) + ";",
       "cursor:pointer;user-select:none;-webkit-user-select:none;",
-      "z-index:3;background:transparent;border:0;padding:0;",
-      "transition:transform .13s ease}",
+      "z-index:30;background:transparent;border:0;padding:0;",
+      "transition:top .13s ease}",
 
-      /* The pixel element itself: one 3px cell, art painted by box-shadow. */
-      ".clawd3d-px{position:absolute;left:0;top:0;width:3px;height:3px;",
-      "background:transparent;transform-origin:0 0;",
-      "transform:scale(" + SIZE + ");pointer-events:none}",
+      ".dcc-px{position:absolute;left:0;top:0;width:3px;height:3px;",
+      "background:transparent;transform-origin:0 0;transform:scale(" + SIZE + ");",
+      "pointer-events:none}",
 
-      ".clawd3d:hover{transform:translateY(calc(-100% - 2px))}",
-      ".clawd3d:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);",
+      ".dcc-crab:hover{top:" + px(-ART_H - 4) + "}",
+
+      ".dcc-crab:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);",
       "outline-offset:3px;border-radius:4px}",
 
-      /* Speech bubble, above the crab. */
-      ".clawd3d-say{position:absolute;right:0;bottom:calc(100% + 8px);",
-      "max-width:190px;padding:6px 10px;border-radius:10px;",
+      ".dcc-say{position:absolute;right:0;bottom:" + px(ART_H + 8) + ";",
+      "max-width:200px;padding:6px 10px;border-radius:10px;",
       "background:var(--dsw-alias-bg-overlay,#fff);",
       "border:1px solid var(--dsw-alias-border-l2);",
       "box-shadow:var(--dsw-shadow-lv2);",
       "color:var(--dsw-alias-label-primary);",
+      "font-family:var(--dsw-font-family,sans-serif);",
       "font-size:12px;line-height:1.45;white-space:nowrap;",
-      "pointer-events:none;opacity:0;transform:translateY(3px);",
-      "transition:opacity .16s ease,transform .16s ease}",
+      "pointer-events:none;opacity:0;transition:opacity .16s ease}",
 
-      ".clawd3d-say[data-on='1']{opacity:1;transform:translateY(0)}",
+      ".dcc-say[data-on='1']{opacity:1}",
 
-      /* Cheer bounce when poked. */
-      "@keyframes clawd3d-hop{0%,100%{translate:0 0}35%{translate:0 -5px}70%{translate:0 -1px}}",
-      ".clawd3d[data-hop='1'] .clawd3d-px{animation:clawd3d-hop 520ms cubic-bezier(.34,1.2,.64,1)}",
-
-      /* The skin's inert pseudo-crab is deliberately NOT suppressed here.
-       * This stylesheet loads even when the slot registration below fails, so
-       * an unconditional `content:none` would remove the skin's crab and leave
-       * nothing in its place — the composer would show NO crab at all. The
-       * skin instead hides its own crab in response to `data-clawd-interactive`,
-       * which is set only once this occupant is registered. */
+      "@keyframes dcc-hop{0%,100%{transform:translateY(0)}35%{transform:translateY(-5px)}70%{transform:translateY(-1px)}}",
+      ".dcc-crab[data-hop='1'] .dcc-px{animation:dcc-hop 520ms cubic-bezier(.34,1.2,.64,1)}",
 
       "@media (prefers-reduced-motion:reduce){",
-      ".clawd3d,.clawd3d-say{transition:none}",
-      ".clawd3d[data-hop='1'] .clawd3d-px{animation:none}}",
+      ".dcc-crab,.dcc-say{transition:none}",
+      ".dcc-crab[data-hop='1'] .dcc-px{animation:none}}",
     ].join("");
 
-    /* ------------------------------------------------------------------ */
-    /* The crab component.                                                 */
-    /* ------------------------------------------------------------------ */
-    function Clawd() {
-      var pxRef = React.useRef(null);
-      var rootRef = React.useRef(null);
-
-      /* frame: which shadow variable is applied. line: current remark. */
-      var frameState = React.useState("open");
-      var frame = frameState[0], setFrame = frameState[1];
-      var lineState = React.useState("");
-      var line = lineState[0], setLine = lineState[1];
-      var hopState = React.useState(false);
-      var hop = hopState[0], setHop = hopState[1];
-
-      var live = React.useRef([]);
-      var poked = React.useRef(false);
-
-      /* The timer SERVICE, not setTimeout. Two reasons: a dynamic client half
-       * traps the browser timer globals outright, and the service ties every
-       * pending callback to the plugin fiber — so unloading the plugin cancels
-       * them instead of leaving them to fire into a torn-down tree. Using one
-       * mechanism in both the static and dynamic builds keeps them identical. */
-      var later = React.useCallback(function (fn, ms) {
-        var dispose = ctx.timeout(fn, ms);
-        live.current.push(dispose);
-        return dispose;
-      }, []);
-
-      /* Every pending reaction dies with the component. */
-      React.useEffect(function () {
-        return function () {
-          live.current.forEach(function (d) {
-            try { d(); } catch (e) { /* already fired */ }
-          });
-          live.current = [];
-        };
-      }, []);
-
-      /* Idle blinking. Paused while a poke reaction plays, so the reaction
-       * reads instead of being overwritten by a blink. */
-      React.useEffect(function () {
-        var alive = true;
-        (function loop() {
-          if (!alive) return;
-          later(function () {
-            if (!alive) return;
-            if (poked.current) return loop();
-            setFrame("blink");
-            later(function () {
-              if (!alive) return;
-              setFrame("open");
-              loop();
-            }, 130);
-          }, 2600 + Math.random() * 2600);
-        })();
-        return function () { alive = false; };
-      }, [later]);
-
-      /* Eye tracking: map pointer position to one of four look frames.
-       * Deliberately quantised to the four frames the art actually has —
-       * faking smooth pupils would mean redrawing the sprite. */
-      React.useEffect(function () {
-        function onMove(e) {
-          var el = rootRef.current;
-          if (el === null) return;
-          if (poked.current) return;   // let the reaction hold the expression
-          var r = el.getBoundingClientRect();
-          var cx = r.left + r.width / 2;
-          var cy = r.top + r.height / 2;
-          var dx = e.clientX - cx;
-          var dy = e.clientY - cy;
-          var dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < 34) { setFrame("open"); return; }   // too close: face front
-          /* Pick the dominant axis, like the reference's four look frames. */
-          if (Math.abs(dx) > Math.abs(dy)) {
-            setFrame(dx < 0 ? "look-l" : "look-r");
-          } else {
-            setFrame(dy < 0 ? "look-u" : "look-d");
-          }
-        }
-        window.addEventListener("pointermove", onMove, { passive: true });
-        return function () { window.removeEventListener("pointermove", onMove); };
-      }, []);
-
-      /* Poke: hop, grin, and say something. */
-      var poke = React.useCallback(function () {
-        poked.current = true;
-        setHop(true);
-        setFrame("cheer");
-        var sleepy = Math.random() < 0.18;
-        var pool = sleepy ? LINES_SLEEPY : LINES;
-        setLine(pool[Math.floor(Math.random() * pool.length)]);
-        later(function () { setFrame("cheer-mid"); }, 300);
-        later(function () {
-          setFrame("open");
-          setHop(false);
-        }, 900);
-        later(function () { poked.current = false; }, 1400);
-        later(function () { setLine(""); }, 3400);
-      }, [later]);
-
-      function onKey(e) {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          poke();
-        }
-      }
-
-      return h(
-        "div",
-        {
-          ref: rootRef,
-          className: "clawd3d",
-          role: "button",
-          tabIndex: 0,
-          "aria-label": "Clawd",
-          "data-hop": hop ? "1" : "0",
-          onClick: poke,
-          onKeyDown: onKey,
-        },
-        h("div", { className: "clawd3d-say", "data-on": line ? "1" : "0" }, line),
-        h("div", {
-          ref: pxRef,
-          className: "clawd3d-px",
-          style: { boxShadow: FRAME(frame) },
-        }),
-      );
-    }
-
     function apply(ctx) {
+      /* ---------------------------------------------------------------- *
+       * Style tag: owned by this fiber.
+       * ---------------------------------------------------------------- */
       ctx.effect(function () {
         var el = document.createElement("style");
         el.setAttribute("data-dcc", "dsh-claude-crab");
@@ -258,34 +103,179 @@ window.__ModuleLoader__.load({
         return function () { if (el.parentNode) el.parentNode.removeChild(el); };
       }, "dsh-claude-crab:styles");
 
-      var slots = ctx.get("slots");
-      if (slots === undefined) return;
+      /* ---------------------------------------------------------------- *
+       * One crab, mounted into whichever composer card currently exists.
+       * ---------------------------------------------------------------- */
+      var root = null;          // the .dcc-crab element
+      var pxEl = null;
+      var sayEl = null;
+      var timers = [];
+      var poked = false;
+      var blinkOn = false;
 
-      /* Stand the skin's inert crab down ONLY AFTER this occupant is actually
-       * registered, and from inside the injection callback so the marker's
-       * lifetime matches the registration's.
-       *
-       * Ordering is the whole point. An earlier version set the marker first
-       * and suppressed the skin crab from this stylesheet unconditionally. When
-       * the slot registration then did not take effect, the skin's crab had
-       * already been removed and nothing replaced it — the composer ended up
-       * with NO crab at all. Register first, hide second: one crab or the
-       * other, never zero. */
-      slots.inject("conversation.input.overlay", function () {
-        var dispose = slots.register(
-          { name: "conversation.input.overlay", id: "clawd", order: 50 },
-          Clawd,
-        );
-        ctx.effect(function () {
-          document.body.setAttribute("data-clawd-interactive", "");
-          return function () { document.body.removeAttribute("data-clawd-interactive"); };
-        }, "dsh-claude-crab:marker");
-        return dispose;
-      });
+      function clearTimers() {
+        for (var i = 0; i < timers.length; i++) {
+          try { timers[i](); } catch (e) { /* already fired */ }
+        }
+        timers = [];
+      }
+      function later(fn, ms) {
+        var d = ctx.timeout(fn, ms);
+        timers.push(d);
+        return d;
+      }
+
+      function setFrame(name) {
+        if (pxEl === null) return;
+        pxEl.style.boxShadow = "var(--crab-f-" + name + ")";
+      }
+
+      /* Idle blink: off/on, rescheduled each cycle so it drifts rather than
+       * pulsing on a metronome. Suppressed while a poke reaction plays. */
+      function blink() {
+        if (root === null) return;
+        if (blinkOn) return;
+        blinkOn = true;
+        later(function () {
+          blinkOn = false;
+          if (root === null) return;
+          if (!poked) setFrame("blink");
+          later(function () {
+            if (root === null) return;
+            if (!poked) setFrame("open");
+            blink();
+          }, 130);
+        }, 2600 + Math.random() * 2600);
+      }
+
+      function say(text) {
+        if (sayEl === null) return;
+        sayEl.textContent = text;
+        sayEl.setAttribute("data-on", text ? "1" : "0");
+      }
+
+      function poke() {
+        if (root === null || poked) return;
+        poked = true;
+        root.setAttribute("data-hop", "1");
+        setFrame("cheer");
+        var pool = Math.random() < 0.18 ? SLEEPY : LINES;
+        say(pool[Math.floor(Math.random() * pool.length)]);
+        later(function () { setFrame("cheer-mid"); }, 300);
+        later(function () {
+          setFrame("open");
+          root.setAttribute("data-hop", "0");
+        }, 900);
+        later(function () { poked = false; }, 1400);
+        later(function () { say(""); }, 3400);
+      }
+
+      /* Eyes follow the pointer, quantised to the four look frames that exist.
+       * A smooth pupil would mean redrawing the sprite, so the crab glances. */
+      function onMove(e) {
+        if (root === null || poked) return;
+        var r = root.getBoundingClientRect();
+        var dx = e.clientX - (r.left + r.width / 2);
+        var dy = e.clientY - (r.top + r.height / 2);
+        if (Math.sqrt(dx * dx + dy * dy) < 34) { setFrame("open"); return; }
+        if (Math.abs(dx) > Math.abs(dy)) setFrame(dx < 0 ? "look-l" : "look-r");
+        else setFrame(dy < 0 ? "look-u" : "look-d");
+      }
+
+      function onKey(e) {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); poke(); }
+      }
+
+      function mount() {
+        var card = document.querySelector("[data-composer-card]");
+        if (card === null) return false;
+        if (root !== null && root.parentNode === card) return true;   // already there
+        unmount();
+
+        root = document.createElement("div");
+        root.className = "dcc-crab";
+        root.setAttribute("role", "button");
+        root.setAttribute("tabindex", "0");
+        root.setAttribute("aria-label", "Clawd");
+        root.setAttribute("data-hop", "0");
+        root.addEventListener("click", poke);
+        root.addEventListener("keydown", onKey);
+
+        sayEl = document.createElement("div");
+        sayEl.className = "dcc-say";
+        sayEl.setAttribute("data-on", "0");
+
+        pxEl = document.createElement("div");
+        pxEl.className = "dcc-px";
+        setFrame("open");
+
+        root.appendChild(sayEl);
+        root.appendChild(pxEl);
+        card.appendChild(root);
+
+        /* The card is position:relative by the owner's own stylesheet, so the
+         * crab's absolute coordinates resolve against it. Assert it instead of
+         * trusting it: if the card is not positioned, the crab would be placed
+         * against some far ancestor and drift. */
+        var pos = getComputedStyle(card).position;
+        if (pos === "static") card.style.position = "relative";
+
+        document.body.setAttribute("data-clawd-interactive", "");
+        blink();
+        return true;
+      }
+
+      function unmount() {
+        clearTimers();
+        if (root !== null && root.parentNode) root.parentNode.removeChild(root);
+        root = null; pxEl = null; sayEl = null;
+        poked = false; blinkOn = false;
+        document.body.removeAttribute("data-clawd-interactive");
+      }
+
+      /* ---------------------------------------------------------------- *
+       * Mount now if the composer exists, and keep it mounted across the
+       * re-renders that replace the card (new session, view switch, ...).
+       * ---------------------------------------------------------------- */
+      ctx.effect(function () {
+        mount();
+        var pending = false;
+        var observer = new MutationObserver(function () {
+          if (pending) return;
+          pending = true;
+          /* Batch to the next frame: the composer re-renders a lot. */
+          requestAnimationFrame(function () {
+            pending = false;
+            var card = document.querySelector("[data-composer-card]");
+            if (card === null) { if (root !== null) unmount(); return; }
+            if (root === null || root.parentNode !== card) mount();
+          });
+        });
+        observer.observe(document.documentElement, { childList: true, subtree: true });
+
+        window.addEventListener("pointermove", onMove, { passive: true });
+
+        return function () {
+          observer.disconnect();
+          window.removeEventListener("pointermove", onMove);
+          unmount();
+        };
+      }, "dsh-claude-crab:mount");
+
+      /* Diagnostics: if the crab is not in the DOM shortly after activation,
+       * say so loudly instead of failing invisibly. */
+      later(function () {
+        if (root === null) {
+          console.warn(
+            "[dsh-claude-crab] no crab mounted: no [data-composer-card] found. " +
+            "The skin's fallback crab remains in place.",
+          );
+        }
+      }, 2500);
     }
 
     exports.name = "dsh-claude-crab";
-    exports.inject = ["slots", "timer"];
+    exports.inject = ["timer"];
     exports.apply = apply;
     return module.exports;
   },

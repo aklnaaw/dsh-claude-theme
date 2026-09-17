@@ -409,8 +409,22 @@ body:has([data-chat-flow-kind][data-streaming]) [data-composer-card]::after {
  * It sets this marker attribute; when present, the inert crab stands down so
  * there is exactly one Clawd. Without the plugin, this never matches and the
  * static crab remains the (non-interactive) fallback. */
+/* Hide the inert crab ONLY when the interactive one is provably in the DOM.
+ *
+ * This deliberately does not key off a marker attribute the plugin sets: a
+ * marker proves the plugin's apply() ran, not that its React occupant actually
+ * rendered. A component that throws during render leaves the marker set and
+ * the composer empty — the exact "no crab at all" failure that was observed.
+ *
+ * :has() on the real element is unfalsifiable: if .clawd3d exists, the skin
+ * crab yields; if it does not, the skin crab stays. The plugin's own marker
+ * is kept as a secondary hint but is no longer load-bearing. */
+body:has(.dcc-crab) [data-composer-card]::after {
+  content: none;
+}
+
 body[data-clawd-interactive] [data-composer-card]::after {
-  content: none !important;
+  content: none;
 }
 
 @keyframes crab-bob {
