@@ -58,39 +58,47 @@ window.__ModuleLoader__.load({
 			".dcb-av{",
 			"width:56px;height:56px;border-radius:50%;flex:none;overflow:hidden;",
 			"display:grid;place-items:center;",
+			"background:var(--dsw-alias-bg-base);",
+			"border:1px solid var(--dsw-alias-border-l2)}",
 			".dcb-av img{width:100%;height:100%;object-fit:cover;display:block}",
 			".dcb-av svg{opacity:.45}",
 			".dcb-preview{",
 			"display:flex;align-items:center;gap:10px;",
 			"padding:14px 16px;border-radius:12px;",
+			"background:var(--dsw-alias-bg-base);",
+			"border:1px solid var(--dsw-alias-border-l2)}",
 			".dcb-preview .mark{flex:none;color:var(--dsw-alias-brand-primary);display:flex}",
 			".dcb-preview .line{",
 			"font-family:var(--dsw-font-family,inherit);font-size:15px;",
 			"color:var(--dsw-alias-label-primary)}",
 
-			/* The sidebar foot row. Sized to match the Settings control it sits
-			 * above so the two read as one stack. */
+			/* The sidebar foot row: a round avatar, then a two-line stack of name
+			 * and caption, then a chevron at the far edge -- the arrangement the
+			 * account row uses in the app being imitated. It is a button across
+			 * its whole width so the hit target matches what it looks like. */
 			".dcb-foot{",
 			"display:flex;align-items:center;gap:10px;",
-			"padding:8px 10px;border-radius:10px;",
+			"padding:7px 8px;border-radius:10px;",
 			"font-family:var(--dsw-font-family,inherit);",
-			"min-width:0}",
-			".dcb-foot-rail{justify-content:center;padding:8px 0;gap:0}",
-			/* The row is a button: it must look like the Settings control it
-			 * sits above when hovered, and inherit the shell's font. */
-			".dcb-foot-open{",
 			"width:100%;background:none;border:0;cursor:pointer;text-align:left;",
-			"font-family:inherit}",
-			".dcb-foot-open:hover{background:var(--dsw-alias-interactive-bg-hover)}",
-			".dcb-foot-empty{color:var(--dsw-alias-label-tertiary);font-weight:400}",
+			"min-width:0}",
+			".dcb-foot:hover{background:var(--dsw-alias-interactive-bg-hover)}",
+			".dcb-foot-rail{justify-content:center;padding:8px 0;gap:0}",
 			".dcb-foot-av{",
-			"width:24px;height:24px;border-radius:50%;flex:none;overflow:hidden;",
+			"width:30px;height:30px;border-radius:50%;flex:none;overflow:hidden;",
 			"display:grid;place-items:center;",
+			"background:var(--dsw-alias-bg-base);",
+			"border:1px solid var(--dsw-alias-border-l2)}",
 			".dcb-foot-av img{width:100%;height:100%;object-fit:cover;display:block}",
 			".dcb-foot-av svg{opacity:.6}",
+			".dcb-foot-text{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1}",
 			".dcb-foot-name{",
-			"font-size:13px;font-weight:500;letter-spacing:-.01em;",
-			"overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}",
+			"font-size:13px;font-weight:500;letter-spacing:-.01em;line-height:1.3;",
+			"overflow:hidden;text-overflow:ellipsis;white-space:nowrap}",
+			".dcb-foot-sub{",
+			"font-size:11px;line-height:1.3;color:var(--dsw-alias-label-tertiary);",
+			"overflow:hidden;text-overflow:ellipsis;white-space:nowrap}",
+			".dcb-foot-chev{flex:none;display:flex;color:var(--dsw-alias-label-tertiary)}",
 		].join("");
 
 		/* ------------------------------------------------------------------
@@ -105,7 +113,7 @@ window.__ModuleLoader__.load({
 		var STORE_KEY = "dsh-claude-brand.prefs";
 
 		function readPrefs() {
-			var empty = { name: "", avatar: "" };
+			var empty = { name: "", sub: "", avatar: "" };
 			try {
 				if (typeof localStorage === "undefined") return empty;
 				var raw = localStorage.getItem(STORE_KEY);
@@ -114,6 +122,7 @@ window.__ModuleLoader__.load({
 				if (typeof parsed !== "object" || parsed === null) return empty;
 				return {
 					name: typeof parsed.name === "string" ? parsed.name.slice(0, 24) : "",
+					sub: typeof parsed.sub === "string" ? parsed.sub.slice(0, 32) : "",
 					avatar: typeof parsed.avatar === "string" ? parsed.avatar : "",
 				};
 			} catch (e) {
@@ -121,7 +130,17 @@ window.__ModuleLoader__.load({
 			}
 		}
 
-		function writePrefs(next) {
+		/* Merge, never replace.
+		 *
+		 * Callers each own one field, and every call site used to have to
+		 * re-supply the others -- which silently dropped whatever a caller
+		 * forgot the moment a new field was added. Merging over what is stored
+		 * makes each field independently writable. */
+		function writePrefs(patch) {
+			var next = readPrefs();
+			if (typeof patch.name === "string") next.name = patch.name.slice(0, 24);
+			if (typeof patch.sub === "string") next.sub = patch.sub.slice(0, 32);
+			if (typeof patch.avatar === "string") next.avatar = patch.avatar;
 			try {
 				if (typeof localStorage !== "undefined") {
 					localStorage.setItem(STORE_KEY, JSON.stringify(next));
@@ -379,15 +398,18 @@ window.__ModuleLoader__.load({
 			var prefs = usePrefs();
 			var nameState = React.useState(prefs.name);
 			var name = nameState[0], setName = nameState[1];
+			var subState = React.useState(prefs.sub);
+			var sub = subState[0], setSub = subState[1];
 			var fileRef = React.useRef(null);
 
-			/* Keep the field in step when the stored value changes elsewhere. */
+			/* Keep the fields in step when the stored value changes elsewhere. */
 			React.useEffect(function () { setName(prefs.name); }, [prefs.name]);
+			React.useEffect(function () { setSub(prefs.sub); }, [prefs.sub]);
 
 			function commitName(value) {
 				var trimmed = value.trim().slice(0, 24);
 				setName(trimmed);
-				writePrefs({ name: trimmed, avatar: prefs.avatar });
+				writePrefs({ name: trimmed });
 			}
 
 			/* The avatar is stored as a data URL rather than a file reference:
@@ -398,14 +420,20 @@ window.__ModuleLoader__.load({
 				if (!file) return;
 				var reader = new FileReader();
 				reader.onload = function () {
-					writePrefs({ name: readPrefs().name, avatar: String(reader.result) });
+					writePrefs({ avatar: String(reader.result) });
 				};
 				reader.readAsDataURL(file);
 				event.target.value = "";
 			}
 
 			function clearAvatar() {
-				writePrefs({ name: readPrefs().name, avatar: "" });
+				writePrefs({ avatar: "" });
+			}
+
+			function commitSub(value) {
+				var trimmed = value.trim().slice(0, 32);
+				setSub(trimmed);
+				writePrefs({ sub: trimmed });
 			}
 
 			var greeting = greetingLine();
@@ -431,6 +459,20 @@ window.__ModuleLoader__.load({
 						{ className: "dcb-hint" },
 						"只用于首页问候语和侧栏底部，存在这台浏览器里，不会上传到任何地方。",
 					),
+				),
+
+				h(
+					"div",
+					{ className: "dcb-row" },
+					h("div", { className: "dcb-lbl" }, "副标题"),
+					h("input", {
+						className: "dcb-in",
+						type: "text",
+						value: sub,
+						maxLength: 32,
+						placeholder: "名字下面那行小字，可留空",
+						onChange: function (e) { commitSub(e.target.value); },
+					}),
 				),
 
 				h(
@@ -528,39 +570,58 @@ window.__ModuleLoader__.load({
 			if (any) any.click();
 		}
 
+		/* A small chevron, matching the affordance the account row carries in
+		 * the app being imitated. Drawn inline so it needs no icon package. */
+		function Chevron() {
+			return h(
+				"svg",
+				{ width: 12, height: 12, viewBox: "0 0 12 12", fill: "none", "aria-hidden": "true" },
+				h("path", {
+					d: "M2.5 4.25 6 7.75l3.5-3.5",
+					stroke: "currentColor",
+					"stroke-width": "1.4",
+					"stroke-linecap": "round",
+					"stroke-linejoin": "round",
+				}),
+			);
+		}
+
 		function ProfileRow(props) {
 			var prefs = usePrefs();
 			var wide = props && props.wide;
-			var hasIdentity = !!(prefs.name || prefs.avatar);
-			var label = prefs.name || "设置名字";
 
 			if (!wide) {
 				return h(
 					"button",
 					{
 						type: "button",
-						className: "dcb-foot dcb-foot-rail dcb-foot-open",
+						className: "dcb-foot dcb-foot-rail",
 						title: prefs.name ? prefs.name + " · 点击修改" : "点击设置名字",
 						onClick: openSettings,
 					},
-					h("span", { className: "dcb-foot-av" }, h(Avatar, { prefs: prefs, size: 20 })),
+					h("span", { className: "dcb-foot-av" }, h(Avatar, { prefs: prefs, size: 18 })),
 				);
 			}
 
+			/* The caption line falls back to a prompt rather than disappearing,
+			 * so the stack keeps its height and the row does not jump once a
+			 * name is typed. */
 			return h(
 				"button",
 				{
 					type: "button",
-					className: "dcb-foot dcb-foot-open",
-					title: hasIdentity ? "点击修改名字和头像" : "点击设置名字和头像",
+					className: "dcb-foot",
+					title: "点击修改名字和头像",
 					onClick: openSettings,
 				},
-				h("span", { className: "dcb-foot-av" }, h(Avatar, { prefs: prefs, size: 22 })),
+				h("span", { className: "dcb-foot-av" }, h(Avatar, { prefs: prefs, size: 24 })),
 				h(
 					"span",
-					{ className: "dcb-foot-name" + (hasIdentity ? "" : " dcb-foot-empty") },
-					label,
+					{ className: "dcb-foot-text" },
+					h("span", { className: "dcb-foot-name" }, prefs.name || "未命名"),
+					h("span", { className: "dcb-foot-sub" }, prefs.sub || "点击设置"),
 				),
+				h("span", { className: "dcb-foot-chev" }, h(Chevron, null)),
 			);
 		}
 
