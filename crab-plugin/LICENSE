@@ -1,0 +1,45 @@
+MIT License
+
+Copyright (c) 2026 aklnaaw
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+================================================================================
+CLAWD — MASCOT ATTRIBUTION AND TRADEMARK NOTICE
+================================================================================
+
+The MIT grant above covers the plugin's code and CSS.
+
+It does NOT cover the Clawd mascot itself.
+
+Clawd, the pixel crab, is a mascot for Anthropic's Claude Code. "Claude" and
+"Anthropic" are trademarks of Anthropic PBC. This project is an unofficial fan
+tribute with no affiliation with, endorsement by, or sponsorship from Anthropic.
+
+The crab is drawn as pure CSS box-shadow pixel art; no image file of the mascot
+is redistributed here. The pixel frame coordinates embedded in
+lib/client.js were derived from the SillyTavern extension "Claude Web 2.0" by
+lulu (github.com/claudenoshujin/claude-web), which is distributed freely in the
+类脑 community. Credit for the original pixel artwork belongs to that author.
+
+This project reuses the geometry only. All selectors, keyframes, colour
+mapping, mounting logic and interaction behaviour are original to this project,
+and no file from that repository is copied.
+
+If you redistribute this plugin, keep this attribution intact.

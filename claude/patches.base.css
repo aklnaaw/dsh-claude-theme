@@ -147,14 +147,27 @@ h1 { letter-spacing: -0.03em; }
 /* ---------------------------------------------------------------------------
  * 6. Tool-call cards — DSH-specific, so they get Claude's card language rather
  * than being left stock (which would read as cold grey blocks on cream).
+ *
+ * NO overflow:hidden HERE, on any of these nodes. It was added to clip child
+ * backgrounds against the rounded corner, but the owner sets no overflow on
+ * these nodes either, and clipping a node whose contents we do not control
+ * risks hiding output. A skin must not be able to lose information.
+ *
+ * turn-process is not in this list at all: it is the thinking block, and the
+ * owner folds it with the native `hidden="until-found"` attribute (see
+ * useSearchableHidden in ui-chat). Touching that subtree's box made the
+ * thinking text intermittently disappear, so we only colour it.
  * ------------------------------------------------------------------------- */
 [data-chat-flow-kind="tool-call"],
-[data-chat-flow-kind="turn-process"],
 [data-chat-flow-kind="workflow-run"] {
   border-radius: var(--cl-radius-lg);
   border: 1px solid var(--dsw-alias-border-l1);
   background: var(--dsw-alias-bg-layer-1);
-  overflow: hidden;
+}
+
+/* The thinking block: colours only, never geometry. */
+[data-chat-flow-kind="turn-process"] {
+  border-radius: var(--cl-radius-lg);
 }
 
 [data-chat-flow-kind] {
@@ -243,8 +256,9 @@ body:is([data-dsh-backdrop-active], [data-dsh-wallpaper-active]) [data-dsh-surfa
  *
  * The queued-message dock (插话) is the composer stack's other row: it sits
  * directly ABOVE the composer card and, like the card, spans the full width.
- * Clawd stands on the card's top-right, so the two collide — the crab covered
- * the dock's right end, which is where the per-row edit/delete buttons live.
+ * Clawd (crab-plugin/) stands on the card's top-right, so the two collide —
+ * the crab covered the dock's right end, which is where the per-row
+ * edit/delete buttons live.
  *
  * Shortening the dock is safe because its row is already built for it:
  *   .row      display:flex, width:100%

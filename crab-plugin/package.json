@@ -1,8 +1,7 @@
 {
   "name": "dsh-claude-crab",
   "version": "1.0.0",
-  "private": true,
-  "description": "Interactive Clawd: a clickable pixel crab on the DSH composer that tracks the pointer and talks back.",
+  "description": "A clickable pixel Clawd crab for the DeepSeek Harness Web GUI: pointer-tracking eyes, idle blinking, and a spoken line when poked.",
   "type": "module",
   "main": "lib/index.js",
   "exports": {
@@ -10,17 +9,41 @@
     "./client": "./lib/client.js",
     "./package.json": "./package.json"
   },
-  "files": ["lib", "cordis.patch.yml", "README.md"],
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE",
+    "docs"
+  ],
   "license": "MIT",
   "dsh": {
-    "bundle": { "patch": "./cordis.patch.yml" },
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
     "client": {
       "platform": "web",
       "inject": [
-        "@deepseek-ai/dsh-client-runtime",
         "@deepseek-ai/dsh-client-ui-renderer",
         "@deepseek-ai/dsh-client-ui-conversation"
       ]
     }
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "clawd",
+    "claude-code",
+    "mascot"
+  ],
+  "author": "aklnaaw",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aklnaaw/dsh-claude-crab.git"
+  },
+  "homepage": "https://github.com/aklnaaw/dsh-claude-crab#readme",
+  "bugs": {
+    "url": "https://github.com/aklnaaw/dsh-claude-crab/issues"
   }
 }
