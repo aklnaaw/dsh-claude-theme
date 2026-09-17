@@ -338,14 +338,17 @@ body[data-ds-dark-theme] {
  * ------------------------------------------------------------------------- */
 
 /* The shared pixel element. */
+/* NOTE: `top`/`left` are deliberately NOT set here. Each placement below owns
+ * its own coordinates, and [data-composer-card]::after is repositioned further
+ * down with an explicit negative `top`. Setting coordinates in this shared rule
+ * would make the result depend on source order — a silent failure the moment
+ * anything reorders these blocks. Only geometry-neutral properties live here. */
 .cl-crab,
 [data-composer-card]::after,
 [data-slot="conversation.hero.brand.mark"]::after,
 .cl-greeting-particles::after {
   content: '';
   position: absolute;
-  left: 0;
-  top: 0;
   width: 3px;
   height: 3px;
   background: transparent;
@@ -429,6 +432,8 @@ body[data-clawd-interactive] [data-composer-card]::after {
 .cl-crab {
   position: relative;
   display: inline-block;
+  left: 0;
+  top: 0;
   box-shadow: var(--crab-f-open);
   transform: scale(var(--cl-crab-scale, 1));
   animation: crab-blink 4.2s step-end infinite;
@@ -458,6 +463,8 @@ body[data-clawd-interactive] [data-composer-card]::after {
 
 [data-slot="conversation.hero.brand.mark"]::after,
 .cl-greeting-particles::after {
+  left: 0;
+  top: 0;
   box-shadow:
     39px 0 0 var(--cl-crab-eye), 42px 0 0 var(--cl-crab-eye), 45px 0 0 var(--cl-crab-eye),
     45px 3px 0 var(--cl-crab-eye), 42px 6px 0 var(--cl-crab-eye),
