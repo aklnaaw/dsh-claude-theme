@@ -36,3 +36,5 @@ dsh-market.provenance.json
 .faces
 *.blocks
 *.files
+
+# /tmp working dir used by gen-cover.py
