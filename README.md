@@ -1,6 +1,6 @@
 # Claude — DSH Web GUI 主题
 
-> **Anthropic 觉得侵权可以联系我下架。**
+> ~~**Anthropic 觉得侵权可以联系我下架。**~~
 
 把 DSH Web GUI 的观感重做成 claude.ai 应用界面的样子：暖米色画布、衬线正文、珊瑚色强调。
 

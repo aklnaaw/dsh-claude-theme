@@ -1,6 +1,6 @@
 # Claude — a DSH Web GUI theme
 
-> **If Anthropic considers this an infringement, contact me and I will take it down.**
+> ~~**If Anthropic considers this an infringement, contact me and I will take it down.**~~
 
 Rebuilds the DSH Web GUI in the visual language of the claude.ai app: warm cream canvas, serif reading text, coral accent.
 
