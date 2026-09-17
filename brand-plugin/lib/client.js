@@ -111,6 +111,53 @@ window.__ModuleLoader__.load({
 			};
 		}
 
+		/* The browser tab icon.
+		 *
+		 * The page declares no <link rel="icon"> at all, so the browser falls
+		 * back to requesting /favicon.svg, which DSH ships as its whale. That
+		 * file lives inside the DSH install and would be clobbered by an
+		 * upgrade, so it is not ours to edit. Declaring our own icon here wins
+		 * the lookup without touching anything we do not own.
+		 *
+		 * Inlined as a data URI rather than a file: a plugin bundle has no
+		 * asset pipeline, and the mark is one path. Coral on transparency so it
+		 * stays legible against both light and dark browser chrome. */
+		function faviconHref() {
+			var svg =
+				'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">' +
+				'<path fill="#d97757" d="' + STARBURST + '"/></svg>';
+			return "data:image/svg+xml," + encodeURIComponent(svg);
+		}
+
+		function installFavicon() {
+			/* Remove any icon the host may have declared, so ours is the only
+			 * candidate. Kept for restore. */
+			var replaced = [];
+			var existing = document.querySelectorAll('link[rel~="icon"]');
+			for (var i = 0; i < existing.length; i++) {
+				var node = existing[i];
+				if (node.parentNode) {
+					replaced.push({ node: node, parent: node.parentNode, next: node.nextSibling });
+					node.parentNode.removeChild(node);
+				}
+			}
+
+			var link = document.createElement("link");
+			link.setAttribute("rel", "icon");
+			link.setAttribute("type", "image/svg+xml");
+			link.setAttribute("href", faviconHref());
+			link.setAttribute("data-dcb", "dsh-claude-brand");
+			document.head.appendChild(link);
+
+			return function () {
+				if (link.parentNode) link.parentNode.removeChild(link);
+				for (var j = 0; j < replaced.length; j++) {
+					var r = replaced[j];
+					try { r.parent.insertBefore(r.node, r.next); } catch (e) { /* head replaced */ }
+				}
+			};
+		}
+
 		function apply(ctx) {
 			ctx.effect(function () {
 				var el = document.createElement("style");
@@ -121,6 +168,7 @@ window.__ModuleLoader__.load({
 			}, "dsh-claude-brand:styles");
 
 			ctx.effect(installBrandText, "dsh-claude-brand:text");
+			ctx.effect(installFavicon, "dsh-claude-brand:favicon");
 
 			var slots = ctx.get("slots");
 			if (slots === undefined) return;
