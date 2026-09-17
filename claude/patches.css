@@ -1,0 +1,423 @@
+/* ============================================================================
+ * Claude — L3 free-selector patches
+ *
+ * Everything here is something the token layer CANNOT express: the radius
+ * ladder, the pill composer, sidebar geometry, and the DSH-specific tool-call
+ * cards that claude.ai has no equivalent for.
+ *
+ * SELECTOR POLICY — every attribute used below was verified against the
+ * installed bundles, not guessed. The contract surface actually stamped at
+ * runtime is:
+ *
+ *   data-dsh-surface : root | sidebar | conversation | session-header |
+ *                      composer | details | overlay | settings
+ *   data-dsh-part    : message-row | message-body | scrollport | composer-input |
+ *                      composer-chip | queue-dock | turn-tail | resize-handle |
+ *                      new-session | sidebar-entry
+ *   data-dsh-plugin  : doctor | git-graph | liangshen | model-capabilities | pet |
+ *                      preset-center | remote-web-ui | session-archive | ssh |
+ *                      task-board | usage
+ *   data-pane        : sidebar | conversation | details
+ *   plus [data-composer-card], [data-composer-seat], [data-shell-overlay],
+ *   [data-chat-flow-kind], [data-slot="…"], [role], [aria-*]
+ *
+ * NEVER [class*=…] (hash-named, warns, breaks on rebuild) and NEVER a
+ * self-written html[…]-rooted state selector: the loader prefixes blindly, so
+ * `html[data-dsh-wallpaper-active] x` becomes `html[data-dsh-skin="claude"] html[…] x`
+ * and never matches. Background state therefore uses the body:is([…]) idiom.
+ *
+ * All selectors are force-scoped under html[data-dsh-skin="claude"].
+ * ========================================================================== */
+
+/* ---------------------------------------------------------------------------
+ * 1. Palette plumbing
+ * ------------------------------------------------------------------------- */
+:root {
+  --cl-serif: 'Newsreader', 'Noto Serif CJK SC', 'Source Han Serif SC', 'Songti SC', Georgia, serif;
+  --cl-sans: 'Inter', 'Noto Sans CJK SC', 'PingFang SC', 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --cl-mono: 'JetBrains Mono', 'Noto Sans Mono CJK SC', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --cl-coral: #d97757;
+  --cl-coral-active: #a9583e;
+  --cl-canvas: #faf9f5;
+  --cl-soft: #f5f0e8;
+  --cl-card: #efe9de;
+  --cl-ink: #141413;
+  --cl-hairline: #e6dfd8;
+  --cl-radius-md: 8px;
+  --cl-radius-lg: 12px;
+  --cl-radius-xl: 16px;
+}
+
+body[data-ds-dark-theme] {
+  --cl-coral: #e08a6a;
+  --cl-coral-active: #d97757;
+  --cl-canvas: #181715;
+  --cl-soft: #1f1e1b;
+  --cl-card: #252320;
+  --cl-ink: #faf9f5;
+  --cl-hairline: #ffffff1f;
+}
+
+/* ---------------------------------------------------------------------------
+ * 2. Typography — the editorial voice
+ * Claude's split is unbreakable: serif for reading, sans for chrome.
+ * ------------------------------------------------------------------------- */
+body {
+  font-family: var(--cl-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* The reading column carries the serif. `message-body` is the real part name. */
+[data-dsh-part="message-body"] :is(p, li, blockquote, td) {
+  font-family: var(--cl-serif);
+  font-optical-sizing: auto;
+  font-kerning: normal;
+  letter-spacing: 0;
+}
+
+/* Headings: serif, weight 400, negative tracking.
+   DESIGN-claude.md: "Copernicus at 700 reads as bombastic; the system stays at 400." */
+:is(h1, h2, h3) {
+  font-family: var(--cl-serif) !important;
+  font-weight: 400 !important;
+  letter-spacing: -0.02em;
+}
+h1 { letter-spacing: -0.03em; }
+
+/* Code stays monospace — never let the serif leak in. */
+:is(code, pre, kbd, samp) {
+  font-family: var(--cl-mono);
+  font-variant-ligatures: none;
+}
+
+/* ---------------------------------------------------------------------------
+ * 3. Surfaces, hairlines, elevation
+ * Claude's philosophy: colour-block first, shadow rare.
+ * ------------------------------------------------------------------------- */
+[data-dsh-surface="sidebar"],
+[data-pane="sidebar"] {
+  border-right: 1px solid var(--dsw-alias-border-l1);
+}
+
+[role="dialog"],
+[data-dsh-surface="overlay"],
+[data-shell-overlay] {
+  border: 1px solid var(--dsw-alias-border-l1);
+  border-radius: var(--cl-radius-lg);
+  box-shadow: var(--dsw-shadow-lv3);
+}
+
+[role="tooltip"] {
+  border-radius: 6px;
+  font-family: var(--cl-sans);
+  font-size: 12px;
+  letter-spacing: 0;
+}
+
+/* ---------------------------------------------------------------------------
+ * 4. The composer — the signature pill
+ * ------------------------------------------------------------------------- */
+[data-composer-card] {
+  border-radius: 26px;
+  border: 1px solid var(--cl-hairline);
+  background: var(--dsw-specific-input-major);
+  box-shadow: 0 1px 3px rgba(20, 20, 19, 0.04);
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+[data-composer-card]:focus-within {
+  border-color: color-mix(in srgb, var(--cl-coral) 55%, var(--cl-hairline));
+  /* 3px coral ring at ~15% — DESIGN-claude.md text-input-focused */
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cl-coral) 15%, transparent);
+}
+
+[data-composer-seat] {
+  font-family: var(--cl-sans);
+}
+
+/* ---------------------------------------------------------------------------
+ * 5. Message rows
+ * User turns read as a soft card; assistant turns stay on the canvas.
+ * ------------------------------------------------------------------------- */
+[data-chat-flow-kind="user"] {
+  border-radius: var(--cl-radius-lg);
+}
+
+/* ---------------------------------------------------------------------------
+ * 6. Tool-call cards — DSH-specific, so they get Claude's card language rather
+ * than being left stock (which would read as cold grey blocks on cream).
+ * ------------------------------------------------------------------------- */
+[data-chat-flow-kind="tool-call"],
+[data-chat-flow-kind="turn-process"],
+[data-chat-flow-kind="workflow-run"] {
+  border-radius: var(--cl-radius-lg);
+  border: 1px solid var(--dsw-alias-border-l1);
+  background: var(--dsw-alias-bg-layer-1);
+  overflow: hidden;
+}
+
+[data-chat-flow-kind] {
+  font-family: var(--cl-sans);
+}
+
+/* ---------------------------------------------------------------------------
+ * 7. Controls
+ * ------------------------------------------------------------------------- */
+[data-dsh-part="sidebar-entry"] {
+  border-radius: var(--cl-radius-md);
+}
+
+[role="treeitem"][aria-selected="true"] {
+  border-radius: var(--cl-radius-md);
+}
+
+button,
+[role="button"],
+[role="tab"],
+[role="menuitem"] {
+  border-radius: var(--cl-radius-md);
+}
+
+:focus-visible {
+  outline: 2px solid var(--cl-coral);
+  outline-offset: 2px;
+}
+
+button,
+[role="button"],
+[role="tab"],
+a {
+  transition: background-color .13s ease, border-color .13s ease,
+              color .13s ease, opacity .13s ease;
+}
+
+/* ---------------------------------------------------------------------------
+ * 8. Blend the third-party chrome into Claude's language
+ * These render their own glyphs/art; tokens alone leave them looking foreign.
+ * All plugin names below are verified emitters.
+ * ------------------------------------------------------------------------- */
+[data-dsh-plugin="liangshen"] { border-radius: var(--cl-radius-lg); }
+[data-dsh-part="lever-track"] { border-radius: 9999px; }
+[data-dsh-part="lever-arm"]   { border-radius: 9999px; }
+
+[data-dsh-plugin="remote-web-ui"],
+[data-dsh-plugin="task-board"],
+[data-dsh-plugin="usage"],
+[data-dsh-plugin="git-graph"],
+[data-dsh-plugin="ssh"],
+[data-dsh-plugin="session-archive"],
+[data-dsh-plugin="preset-center"],
+[data-dsh-plugin="doctor"],
+[data-dsh-plugin="model-capabilities"] {
+  border-radius: var(--cl-radius-lg);
+  font-family: var(--cl-sans);
+}
+
+/* ---------------------------------------------------------------------------
+ * 9. Glass state — when a wallpaper/backdrop is active the panels go frosted.
+ * Idiom taken from the real skins: body:is([…]), never html[…].
+ * ------------------------------------------------------------------------- */
+body:is([data-dsh-backdrop-active], [data-dsh-wallpaper-active]) [data-composer-card] {
+  backdrop-filter: blur(10px);
+  background: color-mix(in srgb, var(--dsw-specific-input-major) 78%, transparent);
+}
+
+body:is([data-dsh-backdrop-active], [data-dsh-wallpaper-active]) [data-dsh-surface="sidebar"] {
+  backdrop-filter: blur(10px);
+}
+
+/* ---------------------------------------------------------------------------
+ * 10. Scrollbars
+ * ------------------------------------------------------------------------- */
+::-webkit-scrollbar-thumb {
+  border-radius: 9999px;
+  background: var(--dsw-alias-scrollbar-bg-l1);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--dsw-alias-scrollbar-hover-l1);
+}
+
+/* ---------------------------------------------------------------------------
+ * 11. Reduced motion
+ * ------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  button, [role="button"], [role="tab"], a, ::-webkit-scrollbar-thumb {
+    transition: none;
+  }
+}
+
+/* ============================================================================
+ * Clawd — the Claude Code pixel crab
+ *
+ * GENERATED by scripts/gen-crab.py — do not hand-edit.
+ *
+ * The crab is pure CSS: one 3x3px element whose `box-shadow` list
+ * paints every pixel. No image, no font, no request — so it stays crisp, inherits
+ * our colour tokens, and costs zero asset weight.
+ *
+ * Clawd is Anthropic's mascot for Claude Code. The pixel geometry is
+ * reproduced from the reference implementation; all selectors, animation and
+ * placement below are ours.
+ * ========================================================================== */
+
+:root {
+  --cl-crab-body: #d97757;
+  --cl-crab-eye: #141413;
+  /* Cell size is 3px in the source data; scaling is done by transform so
+     the shadow geometry never has to be recomputed. */
+  --cl-crab-cell: 3px;
+  /* Art extent, derived from the anchored frame data. Every placement below
+     positions against these, never against hand-measured numbers. */
+  --cl-crab-w: 48px;
+  --cl-crab-h: 36px;
+  /* Composer crab is the reference's 36x24-ish footprint. 1 = native size. */
+  --cl-crab-k: .75;
+}
+
+body[data-ds-dark-theme] {
+  --cl-crab-body: #d97757;
+  --cl-crab-eye: #181715;
+}
+
+/* ---- frame data ---------------------------------------------------------- */
+:root {
+  --crab-f-open: 6px 6px 0 .3px var(--cl-crab-body), 9px 6px 0 .3px var(--cl-crab-body), 12px 6px 0 .3px var(--cl-crab-body), 15px 6px 0 .3px var(--cl-crab-body), 18px 6px 0 .3px var(--cl-crab-body), 21px 6px 0 .3px var(--cl-crab-body), 24px 6px 0 .3px var(--cl-crab-body), 27px 6px 0 .3px var(--cl-crab-body), 30px 6px 0 .3px var(--cl-crab-body), 33px 6px 0 .3px var(--cl-crab-body), 36px 6px 0 .3px var(--cl-crab-body), 39px 6px 0 .3px var(--cl-crab-body), 6px 9px 0 .3px var(--cl-crab-body), 9px 9px 0 .3px var(--cl-crab-body), 12px 9px 0 .3px var(--cl-crab-body), 15px 9px 0 .3px var(--cl-crab-body), 18px 9px 0 .3px var(--cl-crab-body), 21px 9px 0 .3px var(--cl-crab-body), 24px 9px 0 .3px var(--cl-crab-body), 27px 9px 0 .3px var(--cl-crab-body), 30px 9px 0 .3px var(--cl-crab-body), 33px 9px 0 .3px var(--cl-crab-body), 36px 9px 0 .3px var(--cl-crab-body), 39px 9px 0 .3px var(--cl-crab-body), 6px 12px 0 .3px var(--cl-crab-body), 9px 12px 0 .3px var(--cl-crab-body), 12px 12px 0 .3px var(--cl-crab-eye), 15px 12px 0 .3px var(--cl-crab-body), 18px 12px 0 .3px var(--cl-crab-body), 21px 12px 0 .3px var(--cl-crab-body), 24px 12px 0 .3px var(--cl-crab-body), 27px 12px 0 .3px var(--cl-crab-body), 30px 12px 0 .3px var(--cl-crab-body), 33px 12px 0 .3px var(--cl-crab-eye), 36px 12px 0 .3px var(--cl-crab-body), 39px 12px 0 .3px var(--cl-crab-body), 6px 15px 0 .3px var(--cl-crab-body), 9px 15px 0 .3px var(--cl-crab-body), 12px 15px 0 .3px var(--cl-crab-eye), 15px 15px 0 .3px var(--cl-crab-body), 18px 15px 0 .3px var(--cl-crab-body), 21px 15px 0 .3px var(--cl-crab-body), 24px 15px 0 .3px var(--cl-crab-body), 27px 15px 0 .3px var(--cl-crab-body), 30px 15px 0 .3px var(--cl-crab-body), 33px 15px 0 .3px var(--cl-crab-eye), 36px 15px 0 .3px var(--cl-crab-body), 39px 15px 0 .3px var(--cl-crab-body), 6px 18px 0 .3px var(--cl-crab-body), 9px 18px 0 .3px var(--cl-crab-body), 12px 18px 0 .3px var(--cl-crab-body), 15px 18px 0 .3px var(--cl-crab-body), 18px 18px 0 .3px var(--cl-crab-body), 21px 18px 0 .3px var(--cl-crab-body), 24px 18px 0 .3px var(--cl-crab-body), 27px 18px 0 .3px var(--cl-crab-body), 30px 18px 0 .3px var(--cl-crab-body), 33px 18px 0 .3px var(--cl-crab-body), 36px 18px 0 .3px var(--cl-crab-body), 39px 18px 0 .3px var(--cl-crab-body), 0px 21px 0 .3px var(--cl-crab-body), 3px 21px 0 .3px var(--cl-crab-body), 6px 21px 0 .3px var(--cl-crab-body), 9px 21px 0 .3px var(--cl-crab-body), 12px 21px 0 .3px var(--cl-crab-body), 15px 21px 0 .3px var(--cl-crab-body), 18px 21px 0 .3px var(--cl-crab-body), 21px 21px 0 .3px var(--cl-crab-body), 24px 21px 0 .3px var(--cl-crab-body), 27px 21px 0 .3px var(--cl-crab-body), 30px 21px 0 .3px var(--cl-crab-body), 33px 21px 0 .3px var(--cl-crab-body), 36px 21px 0 .3px var(--cl-crab-body), 39px 21px 0 .3px var(--cl-crab-body), 42px 21px 0 .3px var(--cl-crab-body), 45px 21px 0 .3px var(--cl-crab-body), 0px 24px 0 .3px var(--cl-crab-body), 3px 24px 0 .3px var(--cl-crab-body), 6px 24px 0 .3px var(--cl-crab-body), 9px 24px 0 .3px var(--cl-crab-body), 12px 24px 0 .3px var(--cl-crab-body), 15px 24px 0 .3px var(--cl-crab-body), 18px 24px 0 .3px var(--cl-crab-body), 21px 24px 0 .3px var(--cl-crab-body), 24px 24px 0 .3px var(--cl-crab-body), 27px 24px 0 .3px var(--cl-crab-body), 30px 24px 0 .3px var(--cl-crab-body), 33px 24px 0 .3px var(--cl-crab-body), 36px 24px 0 .3px var(--cl-crab-body), 39px 24px 0 .3px var(--cl-crab-body), 42px 24px 0 .3px var(--cl-crab-body), 45px 24px 0 .3px var(--cl-crab-body), 6px 27px 0 .3px var(--cl-crab-body), 9px 27px 0 .3px var(--cl-crab-body), 12px 27px 0 .3px var(--cl-crab-body), 15px 27px 0 .3px var(--cl-crab-body), 18px 27px 0 .3px var(--cl-crab-body), 21px 27px 0 .3px var(--cl-crab-body), 24px 27px 0 .3px var(--cl-crab-body), 27px 27px 0 .3px var(--cl-crab-body), 30px 27px 0 .3px var(--cl-crab-body), 33px 27px 0 .3px var(--cl-crab-body), 36px 27px 0 .3px var(--cl-crab-body), 39px 27px 0 .3px var(--cl-crab-body), 9px 30px 0 .3px var(--cl-crab-body), 15px 30px 0 .3px var(--cl-crab-body), 30px 30px 0 .3px var(--cl-crab-body), 36px 30px 0 .3px var(--cl-crab-body), 9px 33px 0 .3px var(--cl-crab-body), 15px 33px 0 .3px var(--cl-crab-body), 30px 33px 0 .3px var(--cl-crab-body), 36px 33px 0 .3px var(--cl-crab-body);
+  --crab-f-blink: 6px 6px 0 .3px var(--cl-crab-body), 9px 6px 0 .3px var(--cl-crab-body), 12px 6px 0 .3px var(--cl-crab-body), 15px 6px 0 .3px var(--cl-crab-body), 18px 6px 0 .3px var(--cl-crab-body), 21px 6px 0 .3px var(--cl-crab-body), 24px 6px 0 .3px var(--cl-crab-body), 27px 6px 0 .3px var(--cl-crab-body), 30px 6px 0 .3px var(--cl-crab-body), 33px 6px 0 .3px var(--cl-crab-body), 36px 6px 0 .3px var(--cl-crab-body), 39px 6px 0 .3px var(--cl-crab-body), 6px 9px 0 .3px var(--cl-crab-body), 9px 9px 0 .3px var(--cl-crab-body), 12px 9px 0 .3px var(--cl-crab-body), 15px 9px 0 .3px var(--cl-crab-body), 18px 9px 0 .3px var(--cl-crab-body), 21px 9px 0 .3px var(--cl-crab-body), 24px 9px 0 .3px var(--cl-crab-body), 27px 9px 0 .3px var(--cl-crab-body), 30px 9px 0 .3px var(--cl-crab-body), 33px 9px 0 .3px var(--cl-crab-body), 36px 9px 0 .3px var(--cl-crab-body), 39px 9px 0 .3px var(--cl-crab-body), 6px 12px 0 .3px var(--cl-crab-body), 9px 12px 0 .3px var(--cl-crab-body), 12px 12px 0 .3px var(--cl-crab-body), 15px 12px 0 .3px var(--cl-crab-body), 18px 12px 0 .3px var(--cl-crab-body), 21px 12px 0 .3px var(--cl-crab-body), 24px 12px 0 .3px var(--cl-crab-body), 27px 12px 0 .3px var(--cl-crab-body), 30px 12px 0 .3px var(--cl-crab-body), 33px 12px 0 .3px var(--cl-crab-body), 36px 12px 0 .3px var(--cl-crab-body), 39px 12px 0 .3px var(--cl-crab-body), 6px 15px 0 .3px var(--cl-crab-body), 9px 15px 0 .3px var(--cl-crab-body), 12px 15px 0 .3px var(--cl-crab-eye), 15px 15px 0 .3px var(--cl-crab-body), 18px 15px 0 .3px var(--cl-crab-body), 21px 15px 0 .3px var(--cl-crab-body), 24px 15px 0 .3px var(--cl-crab-body), 27px 15px 0 .3px var(--cl-crab-body), 30px 15px 0 .3px var(--cl-crab-body), 33px 15px 0 .3px var(--cl-crab-eye), 36px 15px 0 .3px var(--cl-crab-body), 39px 15px 0 .3px var(--cl-crab-body), 6px 18px 0 .3px var(--cl-crab-body), 9px 18px 0 .3px var(--cl-crab-body), 12px 18px 0 .3px var(--cl-crab-body), 15px 18px 0 .3px var(--cl-crab-body), 18px 18px 0 .3px var(--cl-crab-body), 21px 18px 0 .3px var(--cl-crab-body), 24px 18px 0 .3px var(--cl-crab-body), 27px 18px 0 .3px var(--cl-crab-body), 30px 18px 0 .3px var(--cl-crab-body), 33px 18px 0 .3px var(--cl-crab-body), 36px 18px 0 .3px var(--cl-crab-body), 39px 18px 0 .3px var(--cl-crab-body), 0px 21px 0 .3px var(--cl-crab-body), 3px 21px 0 .3px var(--cl-crab-body), 6px 21px 0 .3px var(--cl-crab-body), 9px 21px 0 .3px var(--cl-crab-body), 12px 21px 0 .3px var(--cl-crab-body), 15px 21px 0 .3px var(--cl-crab-body), 18px 21px 0 .3px var(--cl-crab-body), 21px 21px 0 .3px var(--cl-crab-body), 24px 21px 0 .3px var(--cl-crab-body), 27px 21px 0 .3px var(--cl-crab-body), 30px 21px 0 .3px var(--cl-crab-body), 33px 21px 0 .3px var(--cl-crab-body), 36px 21px 0 .3px var(--cl-crab-body), 39px 21px 0 .3px var(--cl-crab-body), 42px 21px 0 .3px var(--cl-crab-body), 45px 21px 0 .3px var(--cl-crab-body), 0px 24px 0 .3px var(--cl-crab-body), 3px 24px 0 .3px var(--cl-crab-body), 6px 24px 0 .3px var(--cl-crab-body), 9px 24px 0 .3px var(--cl-crab-body), 12px 24px 0 .3px var(--cl-crab-body), 15px 24px 0 .3px var(--cl-crab-body), 18px 24px 0 .3px var(--cl-crab-body), 21px 24px 0 .3px var(--cl-crab-body), 24px 24px 0 .3px var(--cl-crab-body), 27px 24px 0 .3px var(--cl-crab-body), 30px 24px 0 .3px var(--cl-crab-body), 33px 24px 0 .3px var(--cl-crab-body), 36px 24px 0 .3px var(--cl-crab-body), 39px 24px 0 .3px var(--cl-crab-body), 42px 24px 0 .3px var(--cl-crab-body), 45px 24px 0 .3px var(--cl-crab-body), 6px 27px 0 .3px var(--cl-crab-body), 9px 27px 0 .3px var(--cl-crab-body), 12px 27px 0 .3px var(--cl-crab-body), 15px 27px 0 .3px var(--cl-crab-body), 18px 27px 0 .3px var(--cl-crab-body), 21px 27px 0 .3px var(--cl-crab-body), 24px 27px 0 .3px var(--cl-crab-body), 27px 27px 0 .3px var(--cl-crab-body), 30px 27px 0 .3px var(--cl-crab-body), 33px 27px 0 .3px var(--cl-crab-body), 36px 27px 0 .3px var(--cl-crab-body), 39px 27px 0 .3px var(--cl-crab-body), 9px 30px 0 .3px var(--cl-crab-body), 15px 30px 0 .3px var(--cl-crab-body), 30px 30px 0 .3px var(--cl-crab-body), 36px 30px 0 .3px var(--cl-crab-body), 9px 33px 0 .3px var(--cl-crab-body), 15px 33px 0 .3px var(--cl-crab-body), 30px 33px 0 .3px var(--cl-crab-body), 36px 33px 0 .3px var(--cl-crab-body);
+  --crab-f-look-u: 6px 6px 0 .3px var(--cl-crab-body), 9px 6px 0 .3px var(--cl-crab-body), 12px 6px 0 .3px var(--cl-crab-body), 15px 6px 0 .3px var(--cl-crab-body), 18px 6px 0 .3px var(--cl-crab-body), 21px 6px 0 .3px var(--cl-crab-body), 24px 6px 0 .3px var(--cl-crab-body), 27px 6px 0 .3px var(--cl-crab-body), 30px 6px 0 .3px var(--cl-crab-body), 33px 6px 0 .3px var(--cl-crab-body), 36px 6px 0 .3px var(--cl-crab-body), 39px 6px 0 .3px var(--cl-crab-body), 6px 9px 0 .3px var(--cl-crab-body), 9px 9px 0 .3px var(--cl-crab-body), 12px 9px 0 .3px var(--cl-crab-eye), 15px 9px 0 .3px var(--cl-crab-body), 18px 9px 0 .3px var(--cl-crab-body), 21px 9px 0 .3px var(--cl-crab-body), 24px 9px 0 .3px var(--cl-crab-body), 27px 9px 0 .3px var(--cl-crab-body), 30px 9px 0 .3px var(--cl-crab-body), 33px 9px 0 .3px var(--cl-crab-eye), 36px 9px 0 .3px var(--cl-crab-body), 39px 9px 0 .3px var(--cl-crab-body), 6px 12px 0 .3px var(--cl-crab-body), 9px 12px 0 .3px var(--cl-crab-body), 12px 12px 0 .3px var(--cl-crab-eye), 15px 12px 0 .3px var(--cl-crab-body), 18px 12px 0 .3px var(--cl-crab-body), 21px 12px 0 .3px var(--cl-crab-body), 24px 12px 0 .3px var(--cl-crab-body), 27px 12px 0 .3px var(--cl-crab-body), 30px 12px 0 .3px var(--cl-crab-body), 33px 12px 0 .3px var(--cl-crab-eye), 36px 12px 0 .3px var(--cl-crab-body), 39px 12px 0 .3px var(--cl-crab-body), 6px 15px 0 .3px var(--cl-crab-body), 9px 15px 0 .3px var(--cl-crab-body), 12px 15px 0 .3px var(--cl-crab-body), 15px 15px 0 .3px var(--cl-crab-body), 18px 15px 0 .3px var(--cl-crab-body), 21px 15px 0 .3px var(--cl-crab-body), 24px 15px 0 .3px var(--cl-crab-body), 27px 15px 0 .3px var(--cl-crab-body), 30px 15px 0 .3px var(--cl-crab-body), 33px 15px 0 .3px var(--cl-crab-body), 36px 15px 0 .3px var(--cl-crab-body), 39px 15px 0 .3px var(--cl-crab-body), 6px 18px 0 .3px var(--cl-crab-body), 9px 18px 0 .3px var(--cl-crab-body), 12px 18px 0 .3px var(--cl-crab-body), 15px 18px 0 .3px var(--cl-crab-body), 18px 18px 0 .3px var(--cl-crab-body), 21px 18px 0 .3px var(--cl-crab-body), 24px 18px 0 .3px var(--cl-crab-body), 27px 18px 0 .3px var(--cl-crab-body), 30px 18px 0 .3px var(--cl-crab-body), 33px 18px 0 .3px var(--cl-crab-body), 36px 18px 0 .3px var(--cl-crab-body), 39px 18px 0 .3px var(--cl-crab-body), 0px 21px 0 .3px var(--cl-crab-body), 3px 21px 0 .3px var(--cl-crab-body), 6px 21px 0 .3px var(--cl-crab-body), 9px 21px 0 .3px var(--cl-crab-body), 12px 21px 0 .3px var(--cl-crab-body), 15px 21px 0 .3px var(--cl-crab-body), 18px 21px 0 .3px var(--cl-crab-body), 21px 21px 0 .3px var(--cl-crab-body), 24px 21px 0 .3px var(--cl-crab-body), 27px 21px 0 .3px var(--cl-crab-body), 30px 21px 0 .3px var(--cl-crab-body), 33px 21px 0 .3px var(--cl-crab-body), 36px 21px 0 .3px var(--cl-crab-body), 39px 21px 0 .3px var(--cl-crab-body), 42px 21px 0 .3px var(--cl-crab-body), 45px 21px 0 .3px var(--cl-crab-body), 0px 24px 0 .3px var(--cl-crab-body), 3px 24px 0 .3px var(--cl-crab-body), 6px 24px 0 .3px var(--cl-crab-body), 9px 24px 0 .3px var(--cl-crab-body), 12px 24px 0 .3px var(--cl-crab-body), 15px 24px 0 .3px var(--cl-crab-body), 18px 24px 0 .3px var(--cl-crab-body), 21px 24px 0 .3px var(--cl-crab-body), 24px 24px 0 .3px var(--cl-crab-body), 27px 24px 0 .3px var(--cl-crab-body), 30px 24px 0 .3px var(--cl-crab-body), 33px 24px 0 .3px var(--cl-crab-body), 36px 24px 0 .3px var(--cl-crab-body), 39px 24px 0 .3px var(--cl-crab-body), 42px 24px 0 .3px var(--cl-crab-body), 45px 24px 0 .3px var(--cl-crab-body), 6px 27px 0 .3px var(--cl-crab-body), 9px 27px 0 .3px var(--cl-crab-body), 12px 27px 0 .3px var(--cl-crab-body), 15px 27px 0 .3px var(--cl-crab-body), 18px 27px 0 .3px var(--cl-crab-body), 21px 27px 0 .3px var(--cl-crab-body), 24px 27px 0 .3px var(--cl-crab-body), 27px 27px 0 .3px var(--cl-crab-body), 30px 27px 0 .3px var(--cl-crab-body), 33px 27px 0 .3px var(--cl-crab-body), 36px 27px 0 .3px var(--cl-crab-body), 39px 27px 0 .3px var(--cl-crab-body), 9px 30px 0 .3px var(--cl-crab-body), 15px 30px 0 .3px var(--cl-crab-body), 30px 30px 0 .3px var(--cl-crab-body), 36px 30px 0 .3px var(--cl-crab-body), 9px 33px 0 .3px var(--cl-crab-body), 15px 33px 0 .3px var(--cl-crab-body), 30px 33px 0 .3px var(--cl-crab-body), 36px 33px 0 .3px var(--cl-crab-body);
+  --crab-f-look-d: 6px 6px 0 .3px var(--cl-crab-body), 9px 6px 0 .3px var(--cl-crab-body), 12px 6px 0 .3px var(--cl-crab-body), 15px 6px 0 .3px var(--cl-crab-body), 18px 6px 0 .3px var(--cl-crab-body), 21px 6px 0 .3px var(--cl-crab-body), 24px 6px 0 .3px var(--cl-crab-body), 27px 6px 0 .3px var(--cl-crab-body), 30px 6px 0 .3px var(--cl-crab-body), 33px 6px 0 .3px var(--cl-crab-body), 36px 6px 0 .3px var(--cl-crab-body), 39px 6px 0 .3px var(--cl-crab-body), 6px 9px 0 .3px var(--cl-crab-body), 9px 9px 0 .3px var(--cl-crab-body), 12px 9px 0 .3px var(--cl-crab-body), 15px 9px 0 .3px var(--cl-crab-body), 18px 9px 0 .3px var(--cl-crab-body), 21px 9px 0 .3px var(--cl-crab-body), 24px 9px 0 .3px var(--cl-crab-body), 27px 9px 0 .3px var(--cl-crab-body), 30px 9px 0 .3px var(--cl-crab-body), 33px 9px 0 .3px var(--cl-crab-body), 36px 9px 0 .3px var(--cl-crab-body), 39px 9px 0 .3px var(--cl-crab-body), 6px 12px 0 .3px var(--cl-crab-body), 9px 12px 0 .3px var(--cl-crab-body), 12px 12px 0 .3px var(--cl-crab-body), 15px 12px 0 .3px var(--cl-crab-body), 18px 12px 0 .3px var(--cl-crab-body), 21px 12px 0 .3px var(--cl-crab-body), 24px 12px 0 .3px var(--cl-crab-body), 27px 12px 0 .3px var(--cl-crab-body), 30px 12px 0 .3px var(--cl-crab-body), 33px 12px 0 .3px var(--cl-crab-body), 36px 12px 0 .3px var(--cl-crab-body), 39px 12px 0 .3px var(--cl-crab-body), 6px 15px 0 .3px var(--cl-crab-body), 9px 15px 0 .3px var(--cl-crab-body), 12px 15px 0 .3px var(--cl-crab-eye), 15px 15px 0 .3px var(--cl-crab-body), 18px 15px 0 .3px var(--cl-crab-body), 21px 15px 0 .3px var(--cl-crab-body), 24px 15px 0 .3px var(--cl-crab-body), 27px 15px 0 .3px var(--cl-crab-body), 30px 15px 0 .3px var(--cl-crab-body), 33px 15px 0 .3px var(--cl-crab-eye), 36px 15px 0 .3px var(--cl-crab-body), 39px 15px 0 .3px var(--cl-crab-body), 6px 18px 0 .3px var(--cl-crab-body), 9px 18px 0 .3px var(--cl-crab-body), 12px 18px 0 .3px var(--cl-crab-eye), 15px 18px 0 .3px var(--cl-crab-body), 18px 18px 0 .3px var(--cl-crab-body), 21px 18px 0 .3px var(--cl-crab-body), 24px 18px 0 .3px var(--cl-crab-body), 27px 18px 0 .3px var(--cl-crab-body), 30px 18px 0 .3px var(--cl-crab-body), 33px 18px 0 .3px var(--cl-crab-eye), 36px 18px 0 .3px var(--cl-crab-body), 39px 18px 0 .3px var(--cl-crab-body), 0px 21px 0 .3px var(--cl-crab-body), 3px 21px 0 .3px var(--cl-crab-body), 6px 21px 0 .3px var(--cl-crab-body), 9px 21px 0 .3px var(--cl-crab-body), 12px 21px 0 .3px var(--cl-crab-body), 15px 21px 0 .3px var(--cl-crab-body), 18px 21px 0 .3px var(--cl-crab-body), 21px 21px 0 .3px var(--cl-crab-body), 24px 21px 0 .3px var(--cl-crab-body), 27px 21px 0 .3px var(--cl-crab-body), 30px 21px 0 .3px var(--cl-crab-body), 33px 21px 0 .3px var(--cl-crab-body), 36px 21px 0 .3px var(--cl-crab-body), 39px 21px 0 .3px var(--cl-crab-body), 42px 21px 0 .3px var(--cl-crab-body), 45px 21px 0 .3px var(--cl-crab-body), 0px 24px 0 .3px var(--cl-crab-body), 3px 24px 0 .3px var(--cl-crab-body), 6px 24px 0 .3px var(--cl-crab-body), 9px 24px 0 .3px var(--cl-crab-body), 12px 24px 0 .3px var(--cl-crab-body), 15px 24px 0 .3px var(--cl-crab-body), 18px 24px 0 .3px var(--cl-crab-body), 21px 24px 0 .3px var(--cl-crab-body), 24px 24px 0 .3px var(--cl-crab-body), 27px 24px 0 .3px var(--cl-crab-body), 30px 24px 0 .3px var(--cl-crab-body), 33px 24px 0 .3px var(--cl-crab-body), 36px 24px 0 .3px var(--cl-crab-body), 39px 24px 0 .3px var(--cl-crab-body), 42px 24px 0 .3px var(--cl-crab-body), 45px 24px 0 .3px var(--cl-crab-body), 6px 27px 0 .3px var(--cl-crab-body), 9px 27px 0 .3px var(--cl-crab-body), 12px 27px 0 .3px var(--cl-crab-body), 15px 27px 0 .3px var(--cl-crab-body), 18px 27px 0 .3px var(--cl-crab-body), 21px 27px 0 .3px var(--cl-crab-body), 24px 27px 0 .3px var(--cl-crab-body), 27px 27px 0 .3px var(--cl-crab-body), 30px 27px 0 .3px var(--cl-crab-body), 33px 27px 0 .3px var(--cl-crab-body), 36px 27px 0 .3px var(--cl-crab-body), 39px 27px 0 .3px var(--cl-crab-body), 9px 30px 0 .3px var(--cl-crab-body), 15px 30px 0 .3px var(--cl-crab-body), 30px 30px 0 .3px var(--cl-crab-body), 36px 30px 0 .3px var(--cl-crab-body), 9px 33px 0 .3px var(--cl-crab-body), 15px 33px 0 .3px var(--cl-crab-body), 30px 33px 0 .3px var(--cl-crab-body), 36px 33px 0 .3px var(--cl-crab-body);
+  --crab-f-look-l: 6px 6px 0 .3px var(--cl-crab-body), 9px 6px 0 .3px var(--cl-crab-body), 12px 6px 0 .3px var(--cl-crab-body), 15px 6px 0 .3px var(--cl-crab-body), 18px 6px 0 .3px var(--cl-crab-body), 21px 6px 0 .3px var(--cl-crab-body), 24px 6px 0 .3px var(--cl-crab-body), 27px 6px 0 .3px var(--cl-crab-body), 30px 6px 0 .3px var(--cl-crab-body), 33px 6px 0 .3px var(--cl-crab-body), 36px 6px 0 .3px var(--cl-crab-body), 39px 6px 0 .3px var(--cl-crab-body), 6px 9px 0 .3px var(--cl-crab-body), 9px 9px 0 .3px var(--cl-crab-body), 12px 9px 0 .3px var(--cl-crab-body), 15px 9px 0 .3px var(--cl-crab-body), 18px 9px 0 .3px var(--cl-crab-body), 21px 9px 0 .3px var(--cl-crab-body), 24px 9px 0 .3px var(--cl-crab-body), 27px 9px 0 .3px var(--cl-crab-body), 30px 9px 0 .3px var(--cl-crab-body), 33px 9px 0 .3px var(--cl-crab-body), 36px 9px 0 .3px var(--cl-crab-body), 39px 9px 0 .3px var(--cl-crab-body), 6px 12px 0 .3px var(--cl-crab-body), 9px 12px 0 .3px var(--cl-crab-eye), 12px 12px 0 .3px var(--cl-crab-body), 15px 12px 0 .3px var(--cl-crab-body), 18px 12px 0 .3px var(--cl-crab-body), 21px 12px 0 .3px var(--cl-crab-body), 24px 12px 0 .3px var(--cl-crab-body), 27px 12px 0 .3px var(--cl-crab-body), 30px 12px 0 .3px var(--cl-crab-eye), 33px 12px 0 .3px var(--cl-crab-body), 36px 12px 0 .3px var(--cl-crab-body), 39px 12px 0 .3px var(--cl-crab-body), 6px 15px 0 .3px var(--cl-crab-body), 9px 15px 0 .3px var(--cl-crab-eye), 12px 15px 0 .3px var(--cl-crab-body), 15px 15px 0 .3px var(--cl-crab-body), 18px 15px 0 .3px var(--cl-crab-body), 21px 15px 0 .3px var(--cl-crab-body), 24px 15px 0 .3px var(--cl-crab-body), 27px 15px 0 .3px var(--cl-crab-body), 30px 15px 0 .3px var(--cl-crab-eye), 33px 15px 0 .3px var(--cl-crab-body), 36px 15px 0 .3px var(--cl-crab-body), 39px 15px 0 .3px var(--cl-crab-body), 6px 18px 0 .3px var(--cl-crab-body), 9px 18px 0 .3px var(--cl-crab-body), 12px 18px 0 .3px var(--cl-crab-body), 15px 18px 0 .3px var(--cl-crab-body), 18px 18px 0 .3px var(--cl-crab-body), 21px 18px 0 .3px var(--cl-crab-body), 24px 18px 0 .3px var(--cl-crab-body), 27px 18px 0 .3px var(--cl-crab-body), 30px 18px 0 .3px var(--cl-crab-body), 33px 18px 0 .3px var(--cl-crab-body), 36px 18px 0 .3px var(--cl-crab-body), 39px 18px 0 .3px var(--cl-crab-body), 0px 21px 0 .3px var(--cl-crab-body), 3px 21px 0 .3px var(--cl-crab-body), 6px 21px 0 .3px var(--cl-crab-body), 9px 21px 0 .3px var(--cl-crab-body), 12px 21px 0 .3px var(--cl-crab-body), 15px 21px 0 .3px var(--cl-crab-body), 18px 21px 0 .3px var(--cl-crab-body), 21px 21px 0 .3px var(--cl-crab-body), 24px 21px 0 .3px var(--cl-crab-body), 27px 21px 0 .3px var(--cl-crab-body), 30px 21px 0 .3px var(--cl-crab-body), 33px 21px 0 .3px var(--cl-crab-body), 36px 21px 0 .3px var(--cl-crab-body), 39px 21px 0 .3px var(--cl-crab-body), 42px 21px 0 .3px var(--cl-crab-body), 45px 21px 0 .3px var(--cl-crab-body), 0px 24px 0 .3px var(--cl-crab-body), 3px 24px 0 .3px var(--cl-crab-body), 6px 24px 0 .3px var(--cl-crab-body), 9px 24px 0 .3px var(--cl-crab-body), 12px 24px 0 .3px var(--cl-crab-body), 15px 24px 0 .3px var(--cl-crab-body), 18px 24px 0 .3px var(--cl-crab-body), 21px 24px 0 .3px var(--cl-crab-body), 24px 24px 0 .3px var(--cl-crab-body), 27px 24px 0 .3px var(--cl-crab-body), 30px 24px 0 .3px var(--cl-crab-body), 33px 24px 0 .3px var(--cl-crab-body), 36px 24px 0 .3px var(--cl-crab-body), 39px 24px 0 .3px var(--cl-crab-body), 42px 24px 0 .3px var(--cl-crab-body), 45px 24px 0 .3px var(--cl-crab-body), 6px 27px 0 .3px var(--cl-crab-body), 9px 27px 0 .3px var(--cl-crab-body), 12px 27px 0 .3px var(--cl-crab-body), 15px 27px 0 .3px var(--cl-crab-body), 18px 27px 0 .3px var(--cl-crab-body), 21px 27px 0 .3px var(--cl-crab-body), 24px 27px 0 .3px var(--cl-crab-body), 27px 27px 0 .3px var(--cl-crab-body), 30px 27px 0 .3px var(--cl-crab-body), 33px 27px 0 .3px var(--cl-crab-body), 36px 27px 0 .3px var(--cl-crab-body), 39px 27px 0 .3px var(--cl-crab-body), 9px 30px 0 .3px var(--cl-crab-body), 15px 30px 0 .3px var(--cl-crab-body), 30px 30px 0 .3px var(--cl-crab-body), 36px 30px 0 .3px var(--cl-crab-body), 9px 33px 0 .3px var(--cl-crab-body), 15px 33px 0 .3px var(--cl-crab-body), 30px 33px 0 .3px var(--cl-crab-body), 36px 33px 0 .3px var(--cl-crab-body);
+  --crab-f-look-r: 6px 6px 0 .3px var(--cl-crab-body), 9px 6px 0 .3px var(--cl-crab-body), 12px 6px 0 .3px var(--cl-crab-body), 15px 6px 0 .3px var(--cl-crab-body), 18px 6px 0 .3px var(--cl-crab-body), 21px 6px 0 .3px var(--cl-crab-body), 24px 6px 0 .3px var(--cl-crab-body), 27px 6px 0 .3px var(--cl-crab-body), 30px 6px 0 .3px var(--cl-crab-body), 33px 6px 0 .3px var(--cl-crab-body), 36px 6px 0 .3px var(--cl-crab-body), 39px 6px 0 .3px var(--cl-crab-body), 6px 9px 0 .3px var(--cl-crab-body), 9px 9px 0 .3px var(--cl-crab-body), 12px 9px 0 .3px var(--cl-crab-body), 15px 9px 0 .3px var(--cl-crab-body), 18px 9px 0 .3px var(--cl-crab-body), 21px 9px 0 .3px var(--cl-crab-body), 24px 9px 0 .3px var(--cl-crab-body), 27px 9px 0 .3px var(--cl-crab-body), 30px 9px 0 .3px var(--cl-crab-body), 33px 9px 0 .3px var(--cl-crab-body), 36px 9px 0 .3px var(--cl-crab-body), 39px 9px 0 .3px var(--cl-crab-body), 6px 12px 0 .3px var(--cl-crab-body), 9px 12px 0 .3px var(--cl-crab-body), 12px 12px 0 .3px var(--cl-crab-body), 15px 12px 0 .3px var(--cl-crab-eye), 18px 12px 0 .3px var(--cl-crab-body), 21px 12px 0 .3px var(--cl-crab-body), 24px 12px 0 .3px var(--cl-crab-body), 27px 12px 0 .3px var(--cl-crab-body), 30px 12px 0 .3px var(--cl-crab-body), 33px 12px 0 .3px var(--cl-crab-body), 36px 12px 0 .3px var(--cl-crab-eye), 39px 12px 0 .3px var(--cl-crab-body), 6px 15px 0 .3px var(--cl-crab-body), 9px 15px 0 .3px var(--cl-crab-body), 12px 15px 0 .3px var(--cl-crab-body), 15px 15px 0 .3px var(--cl-crab-eye), 18px 15px 0 .3px var(--cl-crab-body), 21px 15px 0 .3px var(--cl-crab-body), 24px 15px 0 .3px var(--cl-crab-body), 27px 15px 0 .3px var(--cl-crab-body), 30px 15px 0 .3px var(--cl-crab-body), 33px 15px 0 .3px var(--cl-crab-body), 36px 15px 0 .3px var(--cl-crab-eye), 39px 15px 0 .3px var(--cl-crab-body), 6px 18px 0 .3px var(--cl-crab-body), 9px 18px 0 .3px var(--cl-crab-body), 12px 18px 0 .3px var(--cl-crab-body), 15px 18px 0 .3px var(--cl-crab-body), 18px 18px 0 .3px var(--cl-crab-body), 21px 18px 0 .3px var(--cl-crab-body), 24px 18px 0 .3px var(--cl-crab-body), 27px 18px 0 .3px var(--cl-crab-body), 30px 18px 0 .3px var(--cl-crab-body), 33px 18px 0 .3px var(--cl-crab-body), 36px 18px 0 .3px var(--cl-crab-body), 39px 18px 0 .3px var(--cl-crab-body), 0px 21px 0 .3px var(--cl-crab-body), 3px 21px 0 .3px var(--cl-crab-body), 6px 21px 0 .3px var(--cl-crab-body), 9px 21px 0 .3px var(--cl-crab-body), 12px 21px 0 .3px var(--cl-crab-body), 15px 21px 0 .3px var(--cl-crab-body), 18px 21px 0 .3px var(--cl-crab-body), 21px 21px 0 .3px var(--cl-crab-body), 24px 21px 0 .3px var(--cl-crab-body), 27px 21px 0 .3px var(--cl-crab-body), 30px 21px 0 .3px var(--cl-crab-body), 33px 21px 0 .3px var(--cl-crab-body), 36px 21px 0 .3px var(--cl-crab-body), 39px 21px 0 .3px var(--cl-crab-body), 42px 21px 0 .3px var(--cl-crab-body), 45px 21px 0 .3px var(--cl-crab-body), 0px 24px 0 .3px var(--cl-crab-body), 3px 24px 0 .3px var(--cl-crab-body), 6px 24px 0 .3px var(--cl-crab-body), 9px 24px 0 .3px var(--cl-crab-body), 12px 24px 0 .3px var(--cl-crab-body), 15px 24px 0 .3px var(--cl-crab-body), 18px 24px 0 .3px var(--cl-crab-body), 21px 24px 0 .3px var(--cl-crab-body), 24px 24px 0 .3px var(--cl-crab-body), 27px 24px 0 .3px var(--cl-crab-body), 30px 24px 0 .3px var(--cl-crab-body), 33px 24px 0 .3px var(--cl-crab-body), 36px 24px 0 .3px var(--cl-crab-body), 39px 24px 0 .3px var(--cl-crab-body), 42px 24px 0 .3px var(--cl-crab-body), 45px 24px 0 .3px var(--cl-crab-body), 6px 27px 0 .3px var(--cl-crab-body), 9px 27px 0 .3px var(--cl-crab-body), 12px 27px 0 .3px var(--cl-crab-body), 15px 27px 0 .3px var(--cl-crab-body), 18px 27px 0 .3px var(--cl-crab-body), 21px 27px 0 .3px var(--cl-crab-body), 24px 27px 0 .3px var(--cl-crab-body), 27px 27px 0 .3px var(--cl-crab-body), 30px 27px 0 .3px var(--cl-crab-body), 33px 27px 0 .3px var(--cl-crab-body), 36px 27px 0 .3px var(--cl-crab-body), 39px 27px 0 .3px var(--cl-crab-body), 9px 30px 0 .3px var(--cl-crab-body), 15px 30px 0 .3px var(--cl-crab-body), 30px 30px 0 .3px var(--cl-crab-body), 36px 30px 0 .3px var(--cl-crab-body), 9px 33px 0 .3px var(--cl-crab-body), 15px 33px 0 .3px var(--cl-crab-body), 30px 33px 0 .3px var(--cl-crab-body), 36px 33px 0 .3px var(--cl-crab-body);
+  --crab-f-shut: 6px 6px 0 .3px var(--cl-crab-body), 9px 6px 0 .3px var(--cl-crab-body), 12px 6px 0 .3px var(--cl-crab-body), 15px 6px 0 .3px var(--cl-crab-body), 18px 6px 0 .3px var(--cl-crab-body), 21px 6px 0 .3px var(--cl-crab-body), 24px 6px 0 .3px var(--cl-crab-body), 27px 6px 0 .3px var(--cl-crab-body), 30px 6px 0 .3px var(--cl-crab-body), 33px 6px 0 .3px var(--cl-crab-body), 36px 6px 0 .3px var(--cl-crab-body), 39px 6px 0 .3px var(--cl-crab-body), 6px 9px 0 .3px var(--cl-crab-body), 9px 9px 0 .3px var(--cl-crab-body), 12px 9px 0 .3px var(--cl-crab-body), 15px 9px 0 .3px var(--cl-crab-body), 18px 9px 0 .3px var(--cl-crab-body), 21px 9px 0 .3px var(--cl-crab-body), 24px 9px 0 .3px var(--cl-crab-body), 27px 9px 0 .3px var(--cl-crab-body), 30px 9px 0 .3px var(--cl-crab-body), 33px 9px 0 .3px var(--cl-crab-body), 36px 9px 0 .3px var(--cl-crab-body), 39px 9px 0 .3px var(--cl-crab-body), 6px 12px 0 .3px var(--cl-crab-body), 9px 12px 0 .3px var(--cl-crab-body), 12px 12px 0 .3px var(--cl-crab-body), 15px 12px 0 .3px var(--cl-crab-body), 18px 12px 0 .3px var(--cl-crab-body), 21px 12px 0 .3px var(--cl-crab-body), 24px 12px 0 .3px var(--cl-crab-body), 27px 12px 0 .3px var(--cl-crab-body), 30px 12px 0 .3px var(--cl-crab-body), 33px 12px 0 .3px var(--cl-crab-body), 36px 12px 0 .3px var(--cl-crab-body), 39px 12px 0 .3px var(--cl-crab-body), 6px 15px 0 .3px var(--cl-crab-body), 9px 15px 0 .3px var(--cl-crab-eye), 12px 15px 0 .3px var(--cl-crab-eye), 15px 15px 0 .3px var(--cl-crab-body), 18px 15px 0 .3px var(--cl-crab-body), 21px 15px 0 .3px var(--cl-crab-body), 24px 15px 0 .3px var(--cl-crab-body), 27px 15px 0 .3px var(--cl-crab-body), 30px 15px 0 .3px var(--cl-crab-body), 33px 15px 0 .3px var(--cl-crab-eye), 36px 15px 0 .3px var(--cl-crab-eye), 39px 15px 0 .3px var(--cl-crab-body), 6px 18px 0 .3px var(--cl-crab-body), 9px 18px 0 .3px var(--cl-crab-body), 12px 18px 0 .3px var(--cl-crab-body), 15px 18px 0 .3px var(--cl-crab-body), 18px 18px 0 .3px var(--cl-crab-body), 21px 18px 0 .3px var(--cl-crab-body), 24px 18px 0 .3px var(--cl-crab-body), 27px 18px 0 .3px var(--cl-crab-body), 30px 18px 0 .3px var(--cl-crab-body), 33px 18px 0 .3px var(--cl-crab-body), 36px 18px 0 .3px var(--cl-crab-body), 39px 18px 0 .3px var(--cl-crab-body), 0px 21px 0 .3px var(--cl-crab-body), 3px 21px 0 .3px var(--cl-crab-body), 6px 21px 0 .3px var(--cl-crab-body), 9px 21px 0 .3px var(--cl-crab-body), 12px 21px 0 .3px var(--cl-crab-body), 15px 21px 0 .3px var(--cl-crab-body), 18px 21px 0 .3px var(--cl-crab-body), 21px 21px 0 .3px var(--cl-crab-body), 24px 21px 0 .3px var(--cl-crab-body), 27px 21px 0 .3px var(--cl-crab-body), 30px 21px 0 .3px var(--cl-crab-body), 33px 21px 0 .3px var(--cl-crab-body), 36px 21px 0 .3px var(--cl-crab-body), 39px 21px 0 .3px var(--cl-crab-body), 42px 21px 0 .3px var(--cl-crab-body), 45px 21px 0 .3px var(--cl-crab-body), 0px 24px 0 .3px var(--cl-crab-body), 3px 24px 0 .3px var(--cl-crab-body), 6px 24px 0 .3px var(--cl-crab-body), 9px 24px 0 .3px var(--cl-crab-body), 12px 24px 0 .3px var(--cl-crab-body), 15px 24px 0 .3px var(--cl-crab-body), 18px 24px 0 .3px var(--cl-crab-body), 21px 24px 0 .3px var(--cl-crab-body), 24px 24px 0 .3px var(--cl-crab-body), 27px 24px 0 .3px var(--cl-crab-body), 30px 24px 0 .3px var(--cl-crab-body), 33px 24px 0 .3px var(--cl-crab-body), 36px 24px 0 .3px var(--cl-crab-body), 39px 24px 0 .3px var(--cl-crab-body), 42px 24px 0 .3px var(--cl-crab-body), 45px 24px 0 .3px var(--cl-crab-body), 6px 27px 0 .3px var(--cl-crab-body), 9px 27px 0 .3px var(--cl-crab-body), 12px 27px 0 .3px var(--cl-crab-body), 15px 27px 0 .3px var(--cl-crab-body), 18px 27px 0 .3px var(--cl-crab-body), 21px 27px 0 .3px var(--cl-crab-body), 24px 27px 0 .3px var(--cl-crab-body), 27px 27px 0 .3px var(--cl-crab-body), 30px 27px 0 .3px var(--cl-crab-body), 33px 27px 0 .3px var(--cl-crab-body), 36px 27px 0 .3px var(--cl-crab-body), 39px 27px 0 .3px var(--cl-crab-body), 12px 30px 0 .3px var(--cl-crab-body), 18px 30px 0 .3px var(--cl-crab-body), 27px 30px 0 .3px var(--cl-crab-body), 33px 30px 0 .3px var(--cl-crab-body);
+  --crab-f-cheer: 3px 6px 0 .3px var(--cl-crab-body), 42px 6px 0 .3px var(--cl-crab-body), 0px 0px 0 .3px var(--cl-crab-body), 3px 0px 0 .3px var(--cl-crab-body), 42px 0px 0 .3px var(--cl-crab-body), 45px 0px 0 .3px var(--cl-crab-body), 0px 3px 0 .3px var(--cl-crab-body), 3px 3px 0 .3px var(--cl-crab-body), 42px 3px 0 .3px var(--cl-crab-body), 45px 3px 0 .3px var(--cl-crab-body), 6px 6px 0 .3px var(--cl-crab-body), 9px 6px 0 .3px var(--cl-crab-body), 12px 6px 0 .3px var(--cl-crab-body), 15px 6px 0 .3px var(--cl-crab-body), 18px 6px 0 .3px var(--cl-crab-body), 21px 6px 0 .3px var(--cl-crab-body), 24px 6px 0 .3px var(--cl-crab-body), 27px 6px 0 .3px var(--cl-crab-body), 30px 6px 0 .3px var(--cl-crab-body), 33px 6px 0 .3px var(--cl-crab-body), 36px 6px 0 .3px var(--cl-crab-body), 39px 6px 0 .3px var(--cl-crab-body), 6px 9px 0 .3px var(--cl-crab-body), 9px 9px 0 .3px var(--cl-crab-body), 12px 9px 0 .3px var(--cl-crab-body), 15px 9px 0 .3px var(--cl-crab-body), 18px 9px 0 .3px var(--cl-crab-body), 21px 9px 0 .3px var(--cl-crab-body), 24px 9px 0 .3px var(--cl-crab-body), 27px 9px 0 .3px var(--cl-crab-body), 30px 9px 0 .3px var(--cl-crab-body), 33px 9px 0 .3px var(--cl-crab-body), 36px 9px 0 .3px var(--cl-crab-body), 39px 9px 0 .3px var(--cl-crab-body), 6px 12px 0 .3px var(--cl-crab-body), 9px 12px 0 .3px var(--cl-crab-body), 12px 12px 0 .3px var(--cl-crab-eye), 15px 12px 0 .3px var(--cl-crab-body), 18px 12px 0 .3px var(--cl-crab-body), 21px 12px 0 .3px var(--cl-crab-body), 24px 12px 0 .3px var(--cl-crab-body), 27px 12px 0 .3px var(--cl-crab-body), 30px 12px 0 .3px var(--cl-crab-body), 33px 12px 0 .3px var(--cl-crab-eye), 36px 12px 0 .3px var(--cl-crab-body), 39px 12px 0 .3px var(--cl-crab-body), 6px 15px 0 .3px var(--cl-crab-body), 9px 15px 0 .3px var(--cl-crab-body), 12px 15px 0 .3px var(--cl-crab-eye), 15px 15px 0 .3px var(--cl-crab-body), 18px 15px 0 .3px var(--cl-crab-body), 21px 15px 0 .3px var(--cl-crab-body), 24px 15px 0 .3px var(--cl-crab-body), 27px 15px 0 .3px var(--cl-crab-body), 30px 15px 0 .3px var(--cl-crab-body), 33px 15px 0 .3px var(--cl-crab-eye), 36px 15px 0 .3px var(--cl-crab-body), 39px 15px 0 .3px var(--cl-crab-body), 6px 18px 0 .3px var(--cl-crab-body), 9px 18px 0 .3px var(--cl-crab-body), 12px 18px 0 .3px var(--cl-crab-body), 15px 18px 0 .3px var(--cl-crab-body), 18px 18px 0 .3px var(--cl-crab-body), 21px 18px 0 .3px var(--cl-crab-body), 24px 18px 0 .3px var(--cl-crab-body), 27px 18px 0 .3px var(--cl-crab-body), 30px 18px 0 .3px var(--cl-crab-body), 33px 18px 0 .3px var(--cl-crab-body), 36px 18px 0 .3px var(--cl-crab-body), 39px 18px 0 .3px var(--cl-crab-body), 6px 21px 0 .3px var(--cl-crab-body), 9px 21px 0 .3px var(--cl-crab-body), 12px 21px 0 .3px var(--cl-crab-body), 15px 21px 0 .3px var(--cl-crab-body), 18px 21px 0 .3px var(--cl-crab-body), 21px 21px 0 .3px var(--cl-crab-body), 24px 21px 0 .3px var(--cl-crab-body), 27px 21px 0 .3px var(--cl-crab-body), 30px 21px 0 .3px var(--cl-crab-body), 33px 21px 0 .3px var(--cl-crab-body), 36px 21px 0 .3px var(--cl-crab-body), 39px 21px 0 .3px var(--cl-crab-body), 6px 24px 0 .3px var(--cl-crab-body), 9px 24px 0 .3px var(--cl-crab-body), 12px 24px 0 .3px var(--cl-crab-body), 15px 24px 0 .3px var(--cl-crab-body), 18px 24px 0 .3px var(--cl-crab-body), 21px 24px 0 .3px var(--cl-crab-body), 24px 24px 0 .3px var(--cl-crab-body), 27px 24px 0 .3px var(--cl-crab-body), 30px 24px 0 .3px var(--cl-crab-body), 33px 24px 0 .3px var(--cl-crab-body), 36px 24px 0 .3px var(--cl-crab-body), 39px 24px 0 .3px var(--cl-crab-body), 6px 27px 0 .3px var(--cl-crab-body), 9px 27px 0 .3px var(--cl-crab-body), 12px 27px 0 .3px var(--cl-crab-body), 15px 27px 0 .3px var(--cl-crab-body), 18px 27px 0 .3px var(--cl-crab-body), 21px 27px 0 .3px var(--cl-crab-body), 24px 27px 0 .3px var(--cl-crab-body), 27px 27px 0 .3px var(--cl-crab-body), 30px 27px 0 .3px var(--cl-crab-body), 33px 27px 0 .3px var(--cl-crab-body), 36px 27px 0 .3px var(--cl-crab-body), 39px 27px 0 .3px var(--cl-crab-body), 9px 30px 0 .3px var(--cl-crab-body), 15px 30px 0 .3px var(--cl-crab-body), 30px 30px 0 .3px var(--cl-crab-body), 36px 30px 0 .3px var(--cl-crab-body), 9px 33px 0 .3px var(--cl-crab-body), 15px 33px 0 .3px var(--cl-crab-body), 30px 33px 0 .3px var(--cl-crab-body), 36px 33px 0 .3px var(--cl-crab-body);
+  --crab-f-cheer-mid: 6px 6px 0 .3px var(--cl-crab-body), 9px 6px 0 .3px var(--cl-crab-body), 12px 6px 0 .3px var(--cl-crab-body), 15px 6px 0 .3px var(--cl-crab-body), 18px 6px 0 .3px var(--cl-crab-body), 21px 6px 0 .3px var(--cl-crab-body), 24px 6px 0 .3px var(--cl-crab-body), 27px 6px 0 .3px var(--cl-crab-body), 30px 6px 0 .3px var(--cl-crab-body), 33px 6px 0 .3px var(--cl-crab-body), 36px 6px 0 .3px var(--cl-crab-body), 39px 6px 0 .3px var(--cl-crab-body), 6px 9px 0 .3px var(--cl-crab-body), 9px 9px 0 .3px var(--cl-crab-body), 12px 9px 0 .3px var(--cl-crab-body), 15px 9px 0 .3px var(--cl-crab-body), 18px 9px 0 .3px var(--cl-crab-body), 21px 9px 0 .3px var(--cl-crab-body), 24px 9px 0 .3px var(--cl-crab-body), 27px 9px 0 .3px var(--cl-crab-body), 30px 9px 0 .3px var(--cl-crab-body), 33px 9px 0 .3px var(--cl-crab-body), 36px 9px 0 .3px var(--cl-crab-body), 39px 9px 0 .3px var(--cl-crab-body), 0px 12px 0 .3px var(--cl-crab-body), 3px 12px 0 .3px var(--cl-crab-body), 6px 12px 0 .3px var(--cl-crab-body), 9px 12px 0 .3px var(--cl-crab-body), 12px 12px 0 .3px var(--cl-crab-eye), 15px 12px 0 .3px var(--cl-crab-body), 18px 12px 0 .3px var(--cl-crab-body), 21px 12px 0 .3px var(--cl-crab-body), 24px 12px 0 .3px var(--cl-crab-body), 27px 12px 0 .3px var(--cl-crab-body), 30px 12px 0 .3px var(--cl-crab-body), 33px 12px 0 .3px var(--cl-crab-eye), 36px 12px 0 .3px var(--cl-crab-body), 39px 12px 0 .3px var(--cl-crab-body), 42px 12px 0 .3px var(--cl-crab-body), 45px 12px 0 .3px var(--cl-crab-body), 0px 15px 0 .3px var(--cl-crab-body), 3px 15px 0 .3px var(--cl-crab-body), 6px 15px 0 .3px var(--cl-crab-body), 9px 15px 0 .3px var(--cl-crab-body), 12px 15px 0 .3px var(--cl-crab-eye), 15px 15px 0 .3px var(--cl-crab-body), 18px 15px 0 .3px var(--cl-crab-body), 21px 15px 0 .3px var(--cl-crab-body), 24px 15px 0 .3px var(--cl-crab-body), 27px 15px 0 .3px var(--cl-crab-body), 30px 15px 0 .3px var(--cl-crab-body), 33px 15px 0 .3px var(--cl-crab-eye), 36px 15px 0 .3px var(--cl-crab-body), 39px 15px 0 .3px var(--cl-crab-body), 42px 15px 0 .3px var(--cl-crab-body), 45px 15px 0 .3px var(--cl-crab-body), 6px 18px 0 .3px var(--cl-crab-body), 9px 18px 0 .3px var(--cl-crab-body), 12px 18px 0 .3px var(--cl-crab-body), 15px 18px 0 .3px var(--cl-crab-body), 18px 18px 0 .3px var(--cl-crab-body), 21px 18px 0 .3px var(--cl-crab-body), 24px 18px 0 .3px var(--cl-crab-body), 27px 18px 0 .3px var(--cl-crab-body), 30px 18px 0 .3px var(--cl-crab-body), 33px 18px 0 .3px var(--cl-crab-body), 36px 18px 0 .3px var(--cl-crab-body), 39px 18px 0 .3px var(--cl-crab-body), 6px 21px 0 .3px var(--cl-crab-body), 9px 21px 0 .3px var(--cl-crab-body), 12px 21px 0 .3px var(--cl-crab-body), 15px 21px 0 .3px var(--cl-crab-body), 18px 21px 0 .3px var(--cl-crab-body), 21px 21px 0 .3px var(--cl-crab-body), 24px 21px 0 .3px var(--cl-crab-body), 27px 21px 0 .3px var(--cl-crab-body), 30px 21px 0 .3px var(--cl-crab-body), 33px 21px 0 .3px var(--cl-crab-body), 36px 21px 0 .3px var(--cl-crab-body), 39px 21px 0 .3px var(--cl-crab-body), 6px 24px 0 .3px var(--cl-crab-body), 9px 24px 0 .3px var(--cl-crab-body), 12px 24px 0 .3px var(--cl-crab-body), 15px 24px 0 .3px var(--cl-crab-body), 18px 24px 0 .3px var(--cl-crab-body), 21px 24px 0 .3px var(--cl-crab-body), 24px 24px 0 .3px var(--cl-crab-body), 27px 24px 0 .3px var(--cl-crab-body), 30px 24px 0 .3px var(--cl-crab-body), 33px 24px 0 .3px var(--cl-crab-body), 36px 24px 0 .3px var(--cl-crab-body), 39px 24px 0 .3px var(--cl-crab-body), 6px 27px 0 .3px var(--cl-crab-body), 9px 27px 0 .3px var(--cl-crab-body), 12px 27px 0 .3px var(--cl-crab-body), 15px 27px 0 .3px var(--cl-crab-body), 18px 27px 0 .3px var(--cl-crab-body), 21px 27px 0 .3px var(--cl-crab-body), 24px 27px 0 .3px var(--cl-crab-body), 27px 27px 0 .3px var(--cl-crab-body), 30px 27px 0 .3px var(--cl-crab-body), 33px 27px 0 .3px var(--cl-crab-body), 36px 27px 0 .3px var(--cl-crab-body), 39px 27px 0 .3px var(--cl-crab-body), 9px 30px 0 .3px var(--cl-crab-body), 15px 30px 0 .3px var(--cl-crab-body), 30px 30px 0 .3px var(--cl-crab-body), 36px 30px 0 .3px var(--cl-crab-body), 9px 33px 0 .3px var(--cl-crab-body), 15px 33px 0 .3px var(--cl-crab-body), 30px 33px 0 .3px var(--cl-crab-body), 36px 33px 0 .3px var(--cl-crab-body);
+  --crab-f-tucked: 6px 6px 0 .3px var(--cl-crab-body), 9px 6px 0 .3px var(--cl-crab-body), 12px 6px 0 .3px var(--cl-crab-body), 15px 6px 0 .3px var(--cl-crab-body), 18px 6px 0 .3px var(--cl-crab-body), 21px 6px 0 .3px var(--cl-crab-body), 24px 6px 0 .3px var(--cl-crab-body), 27px 6px 0 .3px var(--cl-crab-body), 30px 6px 0 .3px var(--cl-crab-body), 33px 6px 0 .3px var(--cl-crab-body), 36px 6px 0 .3px var(--cl-crab-body), 39px 6px 0 .3px var(--cl-crab-body), 6px 9px 0 .3px var(--cl-crab-body), 9px 9px 0 .3px var(--cl-crab-body), 12px 9px 0 .3px var(--cl-crab-body), 15px 9px 0 .3px var(--cl-crab-body), 18px 9px 0 .3px var(--cl-crab-body), 21px 9px 0 .3px var(--cl-crab-body), 24px 9px 0 .3px var(--cl-crab-body), 27px 9px 0 .3px var(--cl-crab-body), 30px 9px 0 .3px var(--cl-crab-body), 33px 9px 0 .3px var(--cl-crab-body), 36px 9px 0 .3px var(--cl-crab-body), 39px 9px 0 .3px var(--cl-crab-body), 6px 12px 0 .3px var(--cl-crab-body), 9px 12px 0 .3px var(--cl-crab-body), 12px 12px 0 .3px var(--cl-crab-eye), 15px 12px 0 .3px var(--cl-crab-body), 18px 12px 0 .3px var(--cl-crab-body), 21px 12px 0 .3px var(--cl-crab-body), 24px 12px 0 .3px var(--cl-crab-body), 27px 12px 0 .3px var(--cl-crab-body), 30px 12px 0 .3px var(--cl-crab-body), 33px 12px 0 .3px var(--cl-crab-eye), 36px 12px 0 .3px var(--cl-crab-body), 39px 12px 0 .3px var(--cl-crab-body), 6px 15px 0 .3px var(--cl-crab-body), 9px 15px 0 .3px var(--cl-crab-body), 12px 15px 0 .3px var(--cl-crab-eye), 15px 15px 0 .3px var(--cl-crab-body), 18px 15px 0 .3px var(--cl-crab-body), 21px 15px 0 .3px var(--cl-crab-body), 24px 15px 0 .3px var(--cl-crab-body), 27px 15px 0 .3px var(--cl-crab-body), 30px 15px 0 .3px var(--cl-crab-body), 33px 15px 0 .3px var(--cl-crab-eye), 36px 15px 0 .3px var(--cl-crab-body), 39px 15px 0 .3px var(--cl-crab-body), 6px 18px 0 .3px var(--cl-crab-body), 9px 18px 0 .3px var(--cl-crab-body), 12px 18px 0 .3px var(--cl-crab-body), 15px 18px 0 .3px var(--cl-crab-body), 18px 18px 0 .3px var(--cl-crab-body), 21px 18px 0 .3px var(--cl-crab-body), 24px 18px 0 .3px var(--cl-crab-body), 27px 18px 0 .3px var(--cl-crab-body), 30px 18px 0 .3px var(--cl-crab-body), 33px 18px 0 .3px var(--cl-crab-body), 36px 18px 0 .3px var(--cl-crab-body), 39px 18px 0 .3px var(--cl-crab-body), 0px 21px 0 .3px var(--cl-crab-body), 3px 21px 0 .3px var(--cl-crab-body), 6px 21px 0 .3px var(--cl-crab-body), 9px 21px 0 .3px var(--cl-crab-body), 12px 21px 0 .3px var(--cl-crab-body), 15px 21px 0 .3px var(--cl-crab-body), 18px 21px 0 .3px var(--cl-crab-body), 21px 21px 0 .3px var(--cl-crab-body), 24px 21px 0 .3px var(--cl-crab-body), 27px 21px 0 .3px var(--cl-crab-body), 30px 21px 0 .3px var(--cl-crab-body), 33px 21px 0 .3px var(--cl-crab-body), 36px 21px 0 .3px var(--cl-crab-body), 39px 21px 0 .3px var(--cl-crab-body), 42px 21px 0 .3px var(--cl-crab-body), 45px 21px 0 .3px var(--cl-crab-body), 0px 24px 0 .3px var(--cl-crab-body), 3px 24px 0 .3px var(--cl-crab-body), 6px 24px 0 .3px var(--cl-crab-body), 9px 24px 0 .3px var(--cl-crab-body), 12px 24px 0 .3px var(--cl-crab-body), 15px 24px 0 .3px var(--cl-crab-body), 18px 24px 0 .3px var(--cl-crab-body), 21px 24px 0 .3px var(--cl-crab-body), 24px 24px 0 .3px var(--cl-crab-body), 27px 24px 0 .3px var(--cl-crab-body), 30px 24px 0 .3px var(--cl-crab-body), 33px 24px 0 .3px var(--cl-crab-body), 36px 24px 0 .3px var(--cl-crab-body), 39px 24px 0 .3px var(--cl-crab-body), 42px 24px 0 .3px var(--cl-crab-body), 45px 24px 0 .3px var(--cl-crab-body), 6px 27px 0 .3px var(--cl-crab-body), 9px 27px 0 .3px var(--cl-crab-body), 12px 27px 0 .3px var(--cl-crab-body), 15px 27px 0 .3px var(--cl-crab-body), 18px 27px 0 .3px var(--cl-crab-body), 21px 27px 0 .3px var(--cl-crab-body), 24px 27px 0 .3px var(--cl-crab-body), 27px 27px 0 .3px var(--cl-crab-body), 30px 27px 0 .3px var(--cl-crab-body), 33px 27px 0 .3px var(--cl-crab-body), 36px 27px 0 .3px var(--cl-crab-body), 39px 27px 0 .3px var(--cl-crab-body), 12px 30px 0 .3px var(--cl-crab-body), 18px 30px 0 .3px var(--cl-crab-body), 27px 30px 0 .3px var(--cl-crab-body), 33px 30px 0 .3px var(--cl-crab-body);
+  --crab-f-tucked-blink: 6px 6px 0 .3px var(--cl-crab-body), 9px 6px 0 .3px var(--cl-crab-body), 12px 6px 0 .3px var(--cl-crab-body), 15px 6px 0 .3px var(--cl-crab-body), 18px 6px 0 .3px var(--cl-crab-body), 21px 6px 0 .3px var(--cl-crab-body), 24px 6px 0 .3px var(--cl-crab-body), 27px 6px 0 .3px var(--cl-crab-body), 30px 6px 0 .3px var(--cl-crab-body), 33px 6px 0 .3px var(--cl-crab-body), 36px 6px 0 .3px var(--cl-crab-body), 39px 6px 0 .3px var(--cl-crab-body), 6px 9px 0 .3px var(--cl-crab-body), 9px 9px 0 .3px var(--cl-crab-body), 12px 9px 0 .3px var(--cl-crab-body), 15px 9px 0 .3px var(--cl-crab-body), 18px 9px 0 .3px var(--cl-crab-body), 21px 9px 0 .3px var(--cl-crab-body), 24px 9px 0 .3px var(--cl-crab-body), 27px 9px 0 .3px var(--cl-crab-body), 30px 9px 0 .3px var(--cl-crab-body), 33px 9px 0 .3px var(--cl-crab-body), 36px 9px 0 .3px var(--cl-crab-body), 39px 9px 0 .3px var(--cl-crab-body), 6px 12px 0 .3px var(--cl-crab-body), 9px 12px 0 .3px var(--cl-crab-body), 12px 12px 0 .3px var(--cl-crab-body), 15px 12px 0 .3px var(--cl-crab-body), 18px 12px 0 .3px var(--cl-crab-body), 21px 12px 0 .3px var(--cl-crab-body), 24px 12px 0 .3px var(--cl-crab-body), 27px 12px 0 .3px var(--cl-crab-body), 30px 12px 0 .3px var(--cl-crab-body), 33px 12px 0 .3px var(--cl-crab-body), 36px 12px 0 .3px var(--cl-crab-body), 39px 12px 0 .3px var(--cl-crab-body), 6px 15px 0 .3px var(--cl-crab-body), 9px 15px 0 .3px var(--cl-crab-body), 12px 15px 0 .3px var(--cl-crab-eye), 15px 15px 0 .3px var(--cl-crab-body), 18px 15px 0 .3px var(--cl-crab-body), 21px 15px 0 .3px var(--cl-crab-body), 24px 15px 0 .3px var(--cl-crab-body), 27px 15px 0 .3px var(--cl-crab-body), 30px 15px 0 .3px var(--cl-crab-body), 33px 15px 0 .3px var(--cl-crab-eye), 36px 15px 0 .3px var(--cl-crab-body), 39px 15px 0 .3px var(--cl-crab-body), 6px 18px 0 .3px var(--cl-crab-body), 9px 18px 0 .3px var(--cl-crab-body), 12px 18px 0 .3px var(--cl-crab-body), 15px 18px 0 .3px var(--cl-crab-body), 18px 18px 0 .3px var(--cl-crab-body), 21px 18px 0 .3px var(--cl-crab-body), 24px 18px 0 .3px var(--cl-crab-body), 27px 18px 0 .3px var(--cl-crab-body), 30px 18px 0 .3px var(--cl-crab-body), 33px 18px 0 .3px var(--cl-crab-body), 36px 18px 0 .3px var(--cl-crab-body), 39px 18px 0 .3px var(--cl-crab-body), 0px 21px 0 .3px var(--cl-crab-body), 3px 21px 0 .3px var(--cl-crab-body), 6px 21px 0 .3px var(--cl-crab-body), 9px 21px 0 .3px var(--cl-crab-body), 12px 21px 0 .3px var(--cl-crab-body), 15px 21px 0 .3px var(--cl-crab-body), 18px 21px 0 .3px var(--cl-crab-body), 21px 21px 0 .3px var(--cl-crab-body), 24px 21px 0 .3px var(--cl-crab-body), 27px 21px 0 .3px var(--cl-crab-body), 30px 21px 0 .3px var(--cl-crab-body), 33px 21px 0 .3px var(--cl-crab-body), 36px 21px 0 .3px var(--cl-crab-body), 39px 21px 0 .3px var(--cl-crab-body), 42px 21px 0 .3px var(--cl-crab-body), 45px 21px 0 .3px var(--cl-crab-body), 0px 24px 0 .3px var(--cl-crab-body), 3px 24px 0 .3px var(--cl-crab-body), 6px 24px 0 .3px var(--cl-crab-body), 9px 24px 0 .3px var(--cl-crab-body), 12px 24px 0 .3px var(--cl-crab-body), 15px 24px 0 .3px var(--cl-crab-body), 18px 24px 0 .3px var(--cl-crab-body), 21px 24px 0 .3px var(--cl-crab-body), 24px 24px 0 .3px var(--cl-crab-body), 27px 24px 0 .3px var(--cl-crab-body), 30px 24px 0 .3px var(--cl-crab-body), 33px 24px 0 .3px var(--cl-crab-body), 36px 24px 0 .3px var(--cl-crab-body), 39px 24px 0 .3px var(--cl-crab-body), 42px 24px 0 .3px var(--cl-crab-body), 45px 24px 0 .3px var(--cl-crab-body), 6px 27px 0 .3px var(--cl-crab-body), 9px 27px 0 .3px var(--cl-crab-body), 12px 27px 0 .3px var(--cl-crab-body), 15px 27px 0 .3px var(--cl-crab-body), 18px 27px 0 .3px var(--cl-crab-body), 21px 27px 0 .3px var(--cl-crab-body), 24px 27px 0 .3px var(--cl-crab-body), 27px 27px 0 .3px var(--cl-crab-body), 30px 27px 0 .3px var(--cl-crab-body), 33px 27px 0 .3px var(--cl-crab-body), 36px 27px 0 .3px var(--cl-crab-body), 39px 27px 0 .3px var(--cl-crab-body), 12px 30px 0 .3px var(--cl-crab-body), 18px 30px 0 .3px var(--cl-crab-body), 27px 30px 0 .3px var(--cl-crab-body), 33px 30px 0 .3px var(--cl-crab-body);
+}
+
+/* ---------------------------------------------------------------------------
+ * Placement.
+ *
+ * The element itself is ONE cell (3x3px, transparent); the box-shadow paints
+ * the art starting at that element's origin and extending right/down by
+ * --cl-crab-w / --cl-crab-h. So every placement below positions the ELEMENT ORIGIN,
+ * and scales with transform-origin:0 0 so the arithmetic stays true.
+ *
+ * That is why the crab must be anchored at pixel (0,0) in gen-crab.py: an
+ * un-anchored port inherits the reference's offsets, which were measured
+ * against a different host element, and lands mis-sized and off-edge.
+ * ------------------------------------------------------------------------- */
+
+/* The shared pixel element. */
+.cl-crab,
+[data-composer-card]::after,
+[data-slot="conversation.hero.brand.mark"]::after,
+.cl-greeting-particles::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 3px;
+  height: 3px;
+  background: transparent;
+  pointer-events: none;
+  transform-origin: 0 0;
+}
+
+/* ---- A. Composer crab -----------------------------------------------------
+ * Stands ON the composer's top edge, right-aligned, while a turn is streaming.
+ * Non-interactive by construction: it is a pseudo-element, so it is not
+ * focusable, not clickable, and needs no creation or cleanup code. The
+ * reference makes the same choice deliberately — a mascot that looks clickable
+ * but is not reads worse than one that plainly is not.
+ * ------------------------------------------------------------------------- */
+[data-composer-card] {
+  position: relative;
+  overflow: visible;
+}
+
+[data-composer-card]::after {
+  /* Element origin sits so that the art's BOTTOM edge meets the card's top
+     edge: art_bottom = origin_top - art_height (y grows downward from origin). */
+  bottom: calc(100% + var(--cl-crab-h) * var(--cl-crab-k) - var(--cl-crab-cell));
+  left: auto;
+  right: 18px;
+  box-shadow: var(--crab-f-open);
+  transform: scale(var(--cl-crab-k));
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+
+body:has([data-streaming]) [data-composer-card]::after,
+body:has([data-chat-flow-kind][data-streaming]) [data-composer-card]::after {
+  opacity: .9;
+  animation: crab-bob 780ms ease-in-out infinite,
+             crab-idle-frames 3s step-end infinite;
+}
+
+@keyframes crab-bob {
+  0%, 100% { translate: 0 0; }
+  50%      { translate: 0 -3px; }
+}
+
+/* Idle blink: eyes shut for ~5% of a 3s cycle, step-end so it snaps rather
+   than interpolating between two pixel patterns (which would smear). */
+@keyframes crab-idle-frames {
+  0%, 90%   { box-shadow: var(--crab-f-open); }
+  91%, 95%  { box-shadow: var(--crab-f-blink); }
+  96%, 100% { box-shadow: var(--crab-f-open); }
+}
+
+/* ---- B. Free-standing crab ------------------------------------------------
+ * For an empty surface or a settings preview. Sized by --cl-crab-scale.
+ * ------------------------------------------------------------------------- */
+.cl-crab {
+  position: relative;
+  display: inline-block;
+  box-shadow: var(--crab-f-open);
+  transform: scale(var(--cl-crab-scale, 1));
+  animation: crab-blink 4.2s step-end infinite;
+}
+
+/* Reserve the art's footprint so the element participates in layout. */
+.cl-crab-box {
+  position: relative;
+  display: inline-block;
+  width: calc(var(--cl-crab-w) * var(--cl-crab-scale, 1));
+  height: calc(var(--cl-crab-h) * var(--cl-crab-scale, 1));
+}
+
+@keyframes crab-blink {
+  0%, 92%   { box-shadow: var(--crab-f-open); }
+  93%, 96%  { box-shadow: var(--crab-f-blink); }
+  97%, 100% { box-shadow: var(--crab-f-open); }
+}
+
+/* ---- C. Greeting particles ------------------------------------------------
+ * The floating pixel sparkle beside the greeting, drawn the same way: one 3px
+ * dot replicated by box-shadow.
+ * ------------------------------------------------------------------------- */
+[data-slot="conversation.hero.brand.mark"] {
+  position: relative;
+}
+
+[data-slot="conversation.hero.brand.mark"]::after,
+.cl-greeting-particles::after {
+  box-shadow:
+    39px 0 0 var(--cl-crab-eye), 42px 0 0 var(--cl-crab-eye), 45px 0 0 var(--cl-crab-eye),
+    45px 3px 0 var(--cl-crab-eye), 42px 6px 0 var(--cl-crab-eye),
+    21px 12px 0 var(--cl-crab-eye), 27px 12px 0 var(--cl-crab-eye),
+    33px 12px 0 var(--cl-crab-eye), 42px 12px 0 var(--cl-crab-eye);
+  animation: crab-particle-float 2.83s cubic-bezier(.37,0,.22,1) .41s infinite;
+}
+
+@keyframes crab-particle-float {
+  0%, 100% { transform: translateY(0);    opacity: .8; }
+  50%      { transform: translateY(-4px); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-composer-card]::after,
+  .cl-crab-hero,
+  .cl-greeting-particles { animation: none; }
+}

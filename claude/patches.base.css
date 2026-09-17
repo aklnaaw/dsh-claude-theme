@@ -1,0 +1,248 @@
+/* ============================================================================
+ * Claude — L3 free-selector patches
+ *
+ * Everything here is something the token layer CANNOT express: the radius
+ * ladder, the pill composer, sidebar geometry, and the DSH-specific tool-call
+ * cards that claude.ai has no equivalent for.
+ *
+ * SELECTOR POLICY — every attribute used below was verified against the
+ * installed bundles, not guessed. The contract surface actually stamped at
+ * runtime is:
+ *
+ *   data-dsh-surface : root | sidebar | conversation | session-header |
+ *                      composer | details | overlay | settings
+ *   data-dsh-part    : message-row | message-body | scrollport | composer-input |
+ *                      composer-chip | queue-dock | turn-tail | resize-handle |
+ *                      new-session | sidebar-entry
+ *   data-dsh-plugin  : doctor | git-graph | liangshen | model-capabilities | pet |
+ *                      preset-center | remote-web-ui | session-archive | ssh |
+ *                      task-board | usage
+ *   data-pane        : sidebar | conversation | details
+ *   plus [data-composer-card], [data-composer-seat], [data-shell-overlay],
+ *   [data-chat-flow-kind], [data-slot="…"], [role], [aria-*]
+ *
+ * NEVER [class*=…] (hash-named, warns, breaks on rebuild) and NEVER a
+ * self-written html[…]-rooted state selector: the loader prefixes blindly, so
+ * `html[data-dsh-wallpaper-active] x` becomes `html[data-dsh-skin="claude"] html[…] x`
+ * and never matches. Background state therefore uses the body:is([…]) idiom.
+ *
+ * All selectors are force-scoped under html[data-dsh-skin="claude"].
+ * ========================================================================== */
+
+/* ---------------------------------------------------------------------------
+ * 1. Palette plumbing
+ * ------------------------------------------------------------------------- */
+:root {
+  --cl-serif: 'Newsreader', 'Noto Serif CJK SC', 'Source Han Serif SC', 'Songti SC', Georgia, serif;
+  --cl-sans: 'Inter', 'Noto Sans CJK SC', 'PingFang SC', 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --cl-mono: 'JetBrains Mono', 'Noto Sans Mono CJK SC', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --cl-coral: #d97757;
+  --cl-coral-active: #a9583e;
+  --cl-canvas: #faf9f5;
+  --cl-soft: #f5f0e8;
+  --cl-card: #efe9de;
+  --cl-ink: #141413;
+  --cl-hairline: #e6dfd8;
+  --cl-radius-md: 8px;
+  --cl-radius-lg: 12px;
+  --cl-radius-xl: 16px;
+}
+
+body[data-ds-dark-theme] {
+  --cl-coral: #e08a6a;
+  --cl-coral-active: #d97757;
+  --cl-canvas: #181715;
+  --cl-soft: #1f1e1b;
+  --cl-card: #252320;
+  --cl-ink: #faf9f5;
+  --cl-hairline: #ffffff1f;
+}
+
+/* ---------------------------------------------------------------------------
+ * 2. Typography — the editorial voice
+ * Claude's split is unbreakable: serif for reading, sans for chrome.
+ * ------------------------------------------------------------------------- */
+body {
+  font-family: var(--cl-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* The reading column carries the serif. `message-body` is the real part name. */
+[data-dsh-part="message-body"] :is(p, li, blockquote, td) {
+  font-family: var(--cl-serif);
+  font-optical-sizing: auto;
+  font-kerning: normal;
+  letter-spacing: 0;
+}
+
+/* Headings: serif, weight 400, negative tracking.
+   DESIGN-claude.md: "Copernicus at 700 reads as bombastic; the system stays at 400." */
+:is(h1, h2, h3) {
+  font-family: var(--cl-serif) !important;
+  font-weight: 400 !important;
+  letter-spacing: -0.02em;
+}
+h1 { letter-spacing: -0.03em; }
+
+/* Code stays monospace — never let the serif leak in. */
+:is(code, pre, kbd, samp) {
+  font-family: var(--cl-mono);
+  font-variant-ligatures: none;
+}
+
+/* ---------------------------------------------------------------------------
+ * 3. Surfaces, hairlines, elevation
+ * Claude's philosophy: colour-block first, shadow rare.
+ * ------------------------------------------------------------------------- */
+[data-dsh-surface="sidebar"],
+[data-pane="sidebar"] {
+  border-right: 1px solid var(--dsw-alias-border-l1);
+}
+
+[role="dialog"],
+[data-dsh-surface="overlay"],
+[data-shell-overlay] {
+  border: 1px solid var(--dsw-alias-border-l1);
+  border-radius: var(--cl-radius-lg);
+  box-shadow: var(--dsw-shadow-lv3);
+}
+
+[role="tooltip"] {
+  border-radius: 6px;
+  font-family: var(--cl-sans);
+  font-size: 12px;
+  letter-spacing: 0;
+}
+
+/* ---------------------------------------------------------------------------
+ * 4. The composer — the signature pill
+ * ------------------------------------------------------------------------- */
+[data-composer-card] {
+  border-radius: 26px;
+  border: 1px solid var(--cl-hairline);
+  background: var(--dsw-specific-input-major);
+  box-shadow: 0 1px 3px rgba(20, 20, 19, 0.04);
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+[data-composer-card]:focus-within {
+  border-color: color-mix(in srgb, var(--cl-coral) 55%, var(--cl-hairline));
+  /* 3px coral ring at ~15% — DESIGN-claude.md text-input-focused */
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cl-coral) 15%, transparent);
+}
+
+[data-composer-seat] {
+  font-family: var(--cl-sans);
+}
+
+/* ---------------------------------------------------------------------------
+ * 5. Message rows
+ * User turns read as a soft card; assistant turns stay on the canvas.
+ * ------------------------------------------------------------------------- */
+[data-chat-flow-kind="user"] {
+  border-radius: var(--cl-radius-lg);
+}
+
+/* ---------------------------------------------------------------------------
+ * 6. Tool-call cards — DSH-specific, so they get Claude's card language rather
+ * than being left stock (which would read as cold grey blocks on cream).
+ * ------------------------------------------------------------------------- */
+[data-chat-flow-kind="tool-call"],
+[data-chat-flow-kind="turn-process"],
+[data-chat-flow-kind="workflow-run"] {
+  border-radius: var(--cl-radius-lg);
+  border: 1px solid var(--dsw-alias-border-l1);
+  background: var(--dsw-alias-bg-layer-1);
+  overflow: hidden;
+}
+
+[data-chat-flow-kind] {
+  font-family: var(--cl-sans);
+}
+
+/* ---------------------------------------------------------------------------
+ * 7. Controls
+ * ------------------------------------------------------------------------- */
+[data-dsh-part="sidebar-entry"] {
+  border-radius: var(--cl-radius-md);
+}
+
+[role="treeitem"][aria-selected="true"] {
+  border-radius: var(--cl-radius-md);
+}
+
+button,
+[role="button"],
+[role="tab"],
+[role="menuitem"] {
+  border-radius: var(--cl-radius-md);
+}
+
+:focus-visible {
+  outline: 2px solid var(--cl-coral);
+  outline-offset: 2px;
+}
+
+button,
+[role="button"],
+[role="tab"],
+a {
+  transition: background-color .13s ease, border-color .13s ease,
+              color .13s ease, opacity .13s ease;
+}
+
+/* ---------------------------------------------------------------------------
+ * 8. Blend the third-party chrome into Claude's language
+ * These render their own glyphs/art; tokens alone leave them looking foreign.
+ * All plugin names below are verified emitters.
+ * ------------------------------------------------------------------------- */
+[data-dsh-plugin="liangshen"] { border-radius: var(--cl-radius-lg); }
+[data-dsh-part="lever-track"] { border-radius: 9999px; }
+[data-dsh-part="lever-arm"]   { border-radius: 9999px; }
+
+[data-dsh-plugin="remote-web-ui"],
+[data-dsh-plugin="task-board"],
+[data-dsh-plugin="usage"],
+[data-dsh-plugin="git-graph"],
+[data-dsh-plugin="ssh"],
+[data-dsh-plugin="session-archive"],
+[data-dsh-plugin="preset-center"],
+[data-dsh-plugin="doctor"],
+[data-dsh-plugin="model-capabilities"] {
+  border-radius: var(--cl-radius-lg);
+  font-family: var(--cl-sans);
+}
+
+/* ---------------------------------------------------------------------------
+ * 9. Glass state — when a wallpaper/backdrop is active the panels go frosted.
+ * Idiom taken from the real skins: body:is([…]), never html[…].
+ * ------------------------------------------------------------------------- */
+body:is([data-dsh-backdrop-active], [data-dsh-wallpaper-active]) [data-composer-card] {
+  backdrop-filter: blur(10px);
+  background: color-mix(in srgb, var(--dsw-specific-input-major) 78%, transparent);
+}
+
+body:is([data-dsh-backdrop-active], [data-dsh-wallpaper-active]) [data-dsh-surface="sidebar"] {
+  backdrop-filter: blur(10px);
+}
+
+/* ---------------------------------------------------------------------------
+ * 10. Scrollbars
+ * ------------------------------------------------------------------------- */
+::-webkit-scrollbar-thumb {
+  border-radius: 9999px;
+  background: var(--dsw-alias-scrollbar-bg-l1);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--dsw-alias-scrollbar-hover-l1);
+}
+
+/* ---------------------------------------------------------------------------
+ * 11. Reduced motion
+ * ------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  button, [role="button"], [role="tab"], a, ::-webkit-scrollbar-thumb {
+    transition: none;
+  }
+}

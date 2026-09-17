@@ -1,0 +1,132 @@
+{
+  "petManifestVersion": 2,
+  "id": "clawd",
+  "displayName": "Clawd",
+  "renderer": "sprite2d",
+  "sprite2d": {
+    "spritesheetPath": "spritesheet.png",
+    "frames": [
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      8,
+      8
+    ],
+    "tracks": {
+      "idle": {
+        "durations": [
+          450,
+          450,
+          450,
+          450,
+          450,
+          450,
+          450,
+          450
+        ]
+      },
+      "running-right": {
+        "durations": [
+          450,
+          450,
+          450,
+          450,
+          450,
+          450,
+          450,
+          450
+        ]
+      },
+      "running-left": {
+        "durations": [
+          450,
+          450,
+          450,
+          450,
+          450,
+          450,
+          450,
+          450
+        ]
+      },
+      "waving": {
+        "durations": [
+          450,
+          450,
+          450,
+          450,
+          450,
+          450,
+          450,
+          450
+        ]
+      },
+      "jumping": {
+        "durations": [
+          450,
+          450,
+          450,
+          450,
+          450,
+          450,
+          450,
+          450
+        ]
+      },
+      "failed": {
+        "durations": [
+          450,
+          450,
+          450,
+          450,
+          450,
+          450,
+          450,
+          450
+        ]
+      },
+      "waiting": {
+        "durations": [
+          450,
+          450,
+          450,
+          450,
+          450,
+          450,
+          450,
+          450
+        ]
+      },
+      "running": {
+        "durations": [
+          450,
+          450,
+          450,
+          450,
+          450,
+          450,
+          450,
+          450
+        ]
+      },
+      "review": {
+        "durations": [
+          450,
+          450,
+          450,
+          450,
+          450,
+          450,
+          450,
+          450
+        ]
+      }
+    }
+  },
+  "description": "Claude Code 的像素小螃蟹。原像素美术 by lulu（类脑社区，claude-web），非官方移植。",
+  "license": "MIT"
+}

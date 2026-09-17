@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="zh-CN" data-dsh-skin="claude">
+<head>
+<meta charset="utf-8">
+<title>Claude — DSH skin preview</title>
+<!-- the REAL served skin.css, unmodified -->
+<link rel="stylesheet" href="baseline.css">
+<link rel="stylesheet" href="served-skin.css">
+<link rel="stylesheet" href="served-patches.css">
+<style>
+  /* Harness-only: replicate the shell's own token wiring so the served skin
+     has a real baseline to override (the presenter writes these on body). */
+  body{ margin:0; font-size:13px; background: var(--dsw-alias-bg-base);
+        color: var(--dsw-alias-label-primary); font-family: var(--dsw-font-family); }
+  .side{ background: var(--dsw-specific-sidebar-fill); color: var(--dsw-alias-label-secondary); }
+  .msg.user{ background: var(--dsw-specific-bubble); }
+  .tool{ background: var(--dsw-alias-bg-layer-1); border-color: var(--dsw-alias-border-l1); }
+  .send{ background: var(--dsw-alias-button-primary-fill); color: var(--dsw-alias-brand-primary-invert); }
+  .entry.sel{ background: var(--dsw-specific-sidebar-nav-item-active); color: var(--dsw-alias-label-primary); }
+  .wrap{ display:flex; height:100vh; }
+  .side{ width:248px; flex:0 0 248px; display:flex; flex-direction:column;
+         padding:10px 10px 8px; box-sizing:border-box; gap:2px; }
+  .brand{ display:flex; align-items:center; gap:9px; padding:8px 8px 12px; }
+  .brand .nm{ font-size:15px; font-weight:500; letter-spacing:-.01em; }
+  .newbtn{ display:flex; align-items:center; gap:8px; padding:8px 10px;
+           font-size:13px; margin-bottom:6px; }
+  .entry{ padding:7px 10px; font-size:13px; white-space:nowrap;
+          overflow:hidden; text-overflow:ellipsis; }
+  .entry.sel{ font-weight:500; }
+  .main{ flex:1; display:flex; flex-direction:column; min-width:0; }
+  .thread{ flex:1; overflow:auto; padding:28px 0 8px; }
+  .col{ max-width:736px; margin:0 auto; padding:0 24px; }
+  .headline{ text-align:center; font-size:30px; margin:56px 0 40px;
+             display:flex; align-items:center; justify-content:center; gap:14px; }
+  .msg{ margin:0 0 22px; font-size:16px; line-height:1.72; }
+  .msg.user{ padding:12px 16px; }
+  .msg p{ margin:0 0 12px; }
+  .tool{ margin:0 0 20px; padding:12px 14px; font-size:12.5px; }
+  .tool .th{ display:flex; align-items:center; gap:8px; margin-bottom:6px;
+             font-weight:500; font-size:12px; }
+  .tool pre{ margin:0; font-size:12px; }
+  .composerWrap{ padding:0 0 22px; }
+  .ccard{ display:flex; align-items:flex-end; gap:10px; padding:12px 14px; }
+  .cinput{ flex:1; font-size:14px; line-height:1.5; }
+  .send{ width:32px; height:32px; border-radius:9999px; flex:0 0 32px;
+         display:flex; align-items:center; justify-content:center; border:0; }
+  .row{ display:flex; align-items:center; gap:6px; margin-top:9px; font-size:12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <aside class="side" data-dsh-surface="sidebar" data-pane="sidebar">
+    <div class="brand" data-slot="sidebar.brand.mark">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="#d97757" aria-label="Claude"><path d="M17.3041 3.541h-3.6718l6.696 16.918H24Zm-10.6082 0L0 20.459h3.7442l1.3693-3.5527h7.0052l1.3693 3.5528h3.7442L10.5363 3.5409Zm-.3712 10.2232 2.2914-5.9456 2.2914 5.9456Z"/></svg>
+      <span class="nm">Claude</span>
+    </div>
+    <div class="newbtn" data-dsh-part="new-session" role="button">＋ 新会话</div>
+    <div class="entry sel" data-dsh-part="sidebar-entry" aria-selected="true">Deepseek harness 主题开发</div>
+    <div class="entry" data-dsh-part="sidebar-entry">酒馆 claude-web 扩展分析</div>
+    <div class="entry" data-dsh-part="sidebar-entry">vps redeploy 记录</div>
+    <div class="entry" data-dsh-part="sidebar-entry">watanare 收集脚本调试</div>
+  </aside>
+
+  <main class="main" data-dsh-surface="conversation" data-pane="conversation">
+    <div class="thread" data-dsh-part="scrollport" data-streaming>
+      <div class="col">
+        <div class="headline" data-slot="conversation.hero.brand.mark">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="#d97757" aria-label="Claude"><path d="M17.3041 3.541h-3.6718l6.696 16.918H24Zm-10.6082 0L0 20.459h3.7442l1.3693-3.5527h7.0052l1.3693 3.5528h3.7442L10.5363 3.5409Zm-.3712 10.2232 2.2914-5.9456 2.2914 5.9456Z"/></svg>
+          <h1 style="margin:0;font-size:30px">晚上好</h1>
+        </div>
+
+        <div class="msg user" data-chat-flow-kind="user" data-dsh-part="message-row">
+          <p>帮我看看这套皮肤的字体加载对不对。</p>
+        </div>
+
+        <div class="msg" data-chat-flow-kind="assistant-step" data-dsh-part="message-row">
+          <div data-dsh-part="message-body">
+            <p>字体的 <strong>latin 子集</strong>已经自托管进皮肤了，中文回退到系统衬线。下面是核对结果：</p>
+            <h2>字体策略</h2>
+            <p>Newsreader 负责阅读区的正文，Inter 负责界面文字，代码块保持等宽。这个段落应当以衬线体呈现。</p>
+          </div>
+        </div>
+
+        <div class="tool" data-chat-flow-kind="tool-call" data-dsh-part="message-row">
+          <div class="th">⏺ bash</div>
+          <pre>node scripts/validate-skin.mjs claude
+✓ skin.json: PASS
+✓ skin.css: PASS (0 warnings)</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="composerWrap">
+      <div class="col">
+        <div class="ccard" data-composer-card data-dsh-surface="composer" data-composer-seat>
+          <div class="cinput">输入想发送的消息，或输入 / 获取帮助</div>
+          <button class="send" data-dsh-part="primary-action" aria-label="发送">↑</button>
+        </div>
+        <div class="row"><span>Claude</span><span>·</span><span>High</span></div>
+      </div>
+    </div>
+  </main>
+</div>
+<script>
+window.addEventListener('load', function(){
+  setTimeout(function(){
+    function cs(sel, prop){ var el=document.querySelector(sel); return el?getComputedStyle(el)[prop]:'MISSING'; }
+    var out = {
+      body_bg: cs('body','backgroundColor'),
+      body_font: cs('body','fontFamily'),
+      sidebar_bg: cs('.side','backgroundColor'),
+      reading_font: cs('[data-dsh-part="message-body"] p','fontFamily'),
+      reading_size: cs('[data-dsh-part="message-body"] p','fontSize'),
+      h1_font: cs('.headline','fontFamily'),
+      code_font: cs('.tool pre','fontFamily'),
+      composer_radius: cs('[data-composer-card]','borderRadius'),
+      send_bg: cs('.send','backgroundColor'),
+      tool_bg: cs('[data-chat-flow-kind="tool-call"]','backgroundColor'),
+      tool_radius: cs('[data-chat-flow-kind="tool-call"]','borderRadius'),
+      user_bubble: cs('[data-chat-flow-kind="user"]','backgroundColor'),
+      serif_loaded: document.fonts.check('16px Newsreader'),
+      inter_loaded: document.fonts.check('13px Inter'),
+      mono_loaded: document.fonts.check('12px "JetBrains Mono"'),
+      fonts_status: document.fonts.status
+    };
+    var pre=document.createElement('pre'); pre.id='PROBE';
+    pre.textContent='PROBE_JSON='+JSON.stringify(out,null,1);
+    document.body.appendChild(pre);
+  }, 1200);
+});
+</script></body>
+</html>

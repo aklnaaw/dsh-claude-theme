@@ -1,0 +1,31 @@
+{
+  "$schema": "https://schemas.linxin666.org/dsh-skin/v2.json",
+  "skinManifestVersion": 2,
+  "id": "claude",
+  "name": "Claude",
+  "nameEn": "Claude",
+  "author": "aklnaaw",
+  "tagline": "暖米色画布 · 衬线正文 · 珊瑚强调色 —— claude.ai 观感的 DSH 复刻",
+  "description": "以 claude.ai 应用界面为蓝本重建 DSH Web GUI 的观感：暖米色画布 (#faf9f5) 取代冷灰白，正文改用 Newsreader 衬线体，强调色取应用实际的珊瑚橙 (#d97757)，卡片层、发丝边框与圆角阶梯全部按 Claude 的视觉语言重排。深色模式采用 Claude 的暖黑 (#181715) 而非纯黑。字体全部自托管于 assets/fonts/，中文回退到系统 Noto Serif CJK SC。",
+  "tags": [
+    "claude",
+    "anthropic",
+    "warm",
+    "cream",
+    "serif",
+    "coral",
+    "light-dark",
+    "editorial"
+  ],
+  "accent": "#d97757",
+  "order": 50,
+  "version": "1.0.0",
+  "preview": {
+    "light": "preview/light.jpg",
+    "dark": "preview/dark.jpg"
+  },
+  "contributes": {
+    "stylesheet": "skin.css",
+    "patches": "patches.css"
+  }
+}
