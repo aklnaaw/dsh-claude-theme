@@ -2,14 +2,43 @@
 
 Rebuilds the DSH Web GUI in the visual language of the claude.ai app: warm cream canvas, serif reading text, coral accent.
 
-This repo ships **two independent artifacts**:
+This repo ships **three artifacts**. Two of them are plugins that are **fully
+independent of the skin** and can be installed on their own:
 
-| Artifact | Location | Install | What it does |
+| Artifact | Path | Needs the skin center? | Install |
 | --- | --- | --- | --- |
-| Skin | `claude/` | Copy to `$DSH_HOME/skins/claude/`, select in Settings | Colors, type, radii, component chrome |
-| Brand plugin | `brand-plugin/` | `dsh plugin --profile web add link:<abs path>` + restart | Replaces the DSH whale mark and brand text |
+| Skin | `claude/` | **Yes** | Copy to `$DSH_HOME/skins/claude/`, select it in Settings |
+| Brand plugin | `brand-plugin/` | **No** | `dsh plugin --profile web add link:<abs path>` + restart |
+| Crab plugin | `crab-plugin/` | **No** | `dsh plugin --profile web add link:<abs path>` + restart |
 
-The skin is a pure asset directory, read and rendered by the installed skin-center plugin `@linxin666/dsh-client-ui-skin-center`. It contains no executable code. Branding cannot be part of the skin (see [Limitations](#limitations)), so it is a separate Cordis client plugin.
+### How they depend on each other
+
+**The skin is a pure asset directory** with no executable code. It is read and
+rendered by the third-party skin center (`@linxin666/dsh-client-ui-skin-center`)
+and **must** go through it — that is the only entry point for a skin.
+
+**Neither plugin goes through the skin center.** They are ordinary Cordis client
+plugins loaded by DSH's own plugin system, and they depend only on official
+things:
+
+| Plugin | Cordis service | CSS variables |
+| --- | --- | --- |
+| `brand-plugin` | `slots` | `--dsw-*` (from the official theme service) |
+| `crab-plugin` | `timer` | `--dsw-*` plus its own `--dcc-*` |
+
+**The key point:** neither plugin references a single skin variable (skin
+variables use the `--cl-*` prefix; the reference count is zero). The crab plugin
+embeds its own pixel frame data instead of reading it from the skin.
+
+So the plugins can be installed without the skin — the crab and the rebranding
+work fine, they simply take their colours from whatever theme is active.
+Installing the skin without the plugins works too; it ships its own small pixel
+sparkle beside the greeting.
+
+**Why rebranding is not part of the skin:** a locally authored skin cannot run
+`hooks.mjs` (the loader only admits official-market origins — see
+[Limitations](#limitations)), and swapping the brand mark means replacing slot
+occupants, which only a plugin can do.
 
 **Status:** all three artifacts are verified working on this machine — the skin validates with zero warnings, and both plugins are linked into the web profile and confirmed through the real page DOM (sidebar shows the Claude starburst SVG and the text wordmark; an interactive Clawd sits on the composer edge).
 
@@ -26,7 +55,7 @@ The skin is a pure asset directory, read and rendered by the installed skin-cent
 
 ![](claude/preview/dark.jpg)
 
-Rendered at 1440×900 by headless Chrome loading the CSS the skin-center actually serves, with the official token defaults underneath — so the colours, fonts and radii shown are measured computed styles, not a mockup. Reproduce with `scripts/render-harness/`.
+Screenshots of the real running UI at 1440×900. Sampled to verify: the light canvas is `rgb(250,249,245)` = `#faf9f5` and the dark canvas is `rgb(24,23,21)` = `#181715`, both exact design values.
 
 ---
 
