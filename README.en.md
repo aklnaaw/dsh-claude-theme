@@ -8,7 +8,7 @@ independent of the skin** and can be installed on their own:
 | Artifact | Path | Needs the skin center? | Install |
 | --- | --- | --- | --- |
 | Skin | `claude/` | **Yes** | Copy to `$DSH_HOME/skins/claude/`, select it in Settings |
-| Brand plugin | `brand-plugin/` | **No** | `dsh plugin --profile web add link:<abs path>` + restart |
+| Claude plugin | `brand-plugin/` | **No** | `dsh plugin --profile web add link:<abs path>` + restart |
 | Crab plugin | `crab-plugin/` | **No** | `dsh plugin --profile web add link:<abs path>` + restart |
 
 ### How they depend on each other
@@ -90,7 +90,7 @@ dsh-claude-theme/
 │   └── preview/                     # preview images (1440x900, light + dark)
 │       ├── light.jpg                #   1440×900
 │       └── dark.jpg                 #   1440×900
-├── brand-plugin/                    # brand plugin, dsh-claude-brand
+├── brand-plugin/                    # Claude plugin, dsh-claude-brand
 │   ├── package.json                 #   declares dsh.bundle.patch and dsh.client.platform=web
 │   ├── cordis.patch.yml             #   inserts the dsh-claude-brand row into the web roster
 │   └── lib/
@@ -135,7 +135,7 @@ curl -s http://127.0.0.1:3080/api/skin-center/v2/catalog \
 
 Expected: `[('claude', [])]` — note the empty `warnings`.
 
-### 2. The brand plugin
+### 2. The Claude plugin
 
 > Verified working on a real page. Not yet installed on a clean machine.
 
@@ -163,7 +163,7 @@ Full install and troubleshooting steps: [`INSTALL.md`](INSTALL.md).
 - **Remote fonts are hard-rejected.** `@import`, remote/protocol-relative URLs, absolute paths and `../` escapes are all rejected by the sanitizer (422). Fonts must live inside the skin directory and be referenced relatively.
 - **Tool-call cards are not a 1:1 reproduction.** claude.ai has no equivalent component; tool cards are DSH-specific UI. They are restyled in Claude's card language (hairline borders, restrained radii, warm layers) — stylistic alignment, not a replica.
 - **The preview images are screenshots of the real running UI.**
-- **The brand plugin is verified on a real page** (sidebar mark is the Claude starburst SVG, name reads "Claude"), but has not been installed on a clean machine.
+- **The Claude plugin is verified on a real page** (sidebar mark is the Claude starburst SVG, name reads "Claude"), but has not been installed on a clean machine.
 - **No reliance on token auto-derivation.** The loader's fallback derivation is effectively non-functional — across roughly 190 uncovered tokens it derives about 1, leaving the rest at stock values. All 278 tokens here are declared explicitly.
 - **Force-scoped.** All CSS is prefixed by the loader under `html[data-dsh-skin="claude"]`, so the skin only affects the page while selected and cannot leak into other skins.
 

@@ -143,7 +143,7 @@ curl -s http://127.0.0.1:3080/api/skin-center/v2/active
 
 ---
 
-## 第 5 步：安装品牌插件
+## 第 5 步：安装 Claude 插件
 
 > 已在本机真实页面验证生效；尚未在干净环境里装过一遍。
 
@@ -253,7 +253,7 @@ rm -rf "$DSH_HOME/skins/claude"
 
 （先确保 `skin-center-active.json` 的 `active` 不是 `claude`，否则页面会退回出厂观感。）
 
-卸载品牌插件：
+卸载 Claude 插件：
 
 ```bash
 dsh plugin --profile web remove dsh-claude-brand
