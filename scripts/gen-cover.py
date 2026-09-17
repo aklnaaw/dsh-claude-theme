@@ -41,7 +41,21 @@ FONTS = ROOT / "claude" / "assets" / "fonts"
 WORK = pathlib.Path("/tmp/cover-build")
 OUT = ROOT / "cover"
 
-W, H = 1920, 1080
+# Two outputs from one layout.
+#
+#   16:9 1920x1080 -- video thumbnail
+#    2:1 1280x640  -- GitHub social preview, which is what the repo card shows.
+#                      GitHub wants at least 1280x640 and under 1MB, and it does
+#                      not crop to fit, so a 16:9 file would be letterboxed or
+#                      squeezed on the card. Hence a second render rather than a
+#                      resize of the first.
+VARIANTS = [
+    {"name": "cover", "w": 1920, "h": 1080},
+    # Supersampled: GitHub caps this at 1MB and 151KB leaves room, so the
+    # extra render resolution costs nothing that matters and sharpens the small
+    # caption text, which is the one part that suffers at 1280 wide.
+    {"name": "social", "w": 1280, "h": 640, "scale": 2},
+]
 
 # Ink bounds in the lockup's own user space.
 #   whale  : clip rect at translate(0.141602 3.52185), size 23.16 x 17.0435
@@ -109,10 +123,14 @@ def lockup(pal: dict, width: int) -> str:
   </svg>"""
 
 
-def page(pal: dict) -> str:
-    lock_w = 620
+def page(pal: dict, w: int, h: int) -> str:
+    # Everything scales off the short edge, so the 2:1 card and the 16:9
+    # thumbnail keep the same visual weight instead of the lockup shrinking
+    # when the canvas gets shorter.
+    k = h / 1080.0
+    lock_w = round(620 * k)
     lock_h = round(lock_w * LOCK_H / LOCK_W)
-    star = 300
+    star = round(300 * k)
 
     return f"""<!doctype html>
 <html><head><meta charset="utf-8">
@@ -120,7 +138,7 @@ def page(pal: dict) -> str:
 {font_face('Inter', 'inter-normal.woff2', '100 900')}
 {font_face('Newsreader', 'newsreader-normal.woff2', '200 800')}
 * {{ margin:0; padding:0; box-sizing:border-box; }}
-html,body {{ width:{W}px; height:{H}px; }}
+html,body {{ width:{w}px; height:{h}px; }}
 body {{
   background:{pal['canvas']};
   font-family:'Inter',sans-serif;
@@ -137,15 +155,15 @@ body {{
 .stage {{
   position:absolute; inset:0;
   display:flex; align-items:center; justify-content:center;
-  gap:104px;
+  gap:{round(104*k)}px;
 }}
 .stage svg {{ display:block; }}
 
 .rule {{ width:2px; height:{round(lock_h*0.86)}px; flex:none; background:{pal['hairline']}; }}
 
 .caption {{
-  position:absolute; left:0; right:0; bottom:96px;
-  text-align:center; font-size:26px; font-weight:500;
+  position:absolute; left:0; right:0; bottom:{round(96*k)}px;
+  text-align:center; font-size:{round(26*k)}px; font-weight:500;
   letter-spacing:0.22em; color:{pal['caption']};
   text-transform:uppercase;
 }}
@@ -169,34 +187,48 @@ body {{
 """
 
 
-def render(pal: dict, name: str) -> pathlib.Path:
+def render(pal: dict, name: str, w: int, h: int, scale: int = 1) -> pathlib.Path:
+    """Render one variant. `scale` supersamples: the page is laid out at w x h
+    and the screenshot is taken at scale times that, then reduced with a good
+    filter. Headless Chrome's own downscaling is worse than Pillow's Lanczos,
+    and the caption is small enough that it shows."""
     if WORK.exists():
         shutil.rmtree(WORK)
     WORK.mkdir(parents=True)
-    (WORK / "index.html").write_text(page(pal), encoding="utf-8")
+    (WORK / "index.html").write_text(page(pal, w, h), encoding="utf-8")
 
     png = WORK / f"{name}.png"
     subprocess.run(
         [
             "google-chrome-stable", "--headless=new", "--disable-gpu",
-            "--hide-scrollbars", f"--window-size={W},{H}",
-            "--force-device-scale-factor=1", "--virtual-time-budget=8000",
+            "--hide-scrollbars", f"--window-size={w},{h}",
+            f"--force-device-scale-factor={scale}",
+            "--virtual-time-budget=8000",
             f"--screenshot={png}", f"file://{WORK}/index.html",
         ],
         check=True, capture_output=True,
     )
+
     OUT.mkdir(exist_ok=True)
     dest = OUT / f"{name}.png"
-    shutil.copy2(png, dest)
+    if scale == 1:
+        shutil.copy2(png, dest)
+    else:
+        from PIL import Image
+
+        im = Image.open(png).convert("RGB")
+        im.resize((w, h), Image.LANCZOS).save(dest, "PNG", optimize=True)
     return dest
 
 
 def main() -> int:
     print(f"  lockup viewBox: {LOCK_X:.4f} {LOCK_Y:.4f} {LOCK_W:.4f} {LOCK_H:.4f}"
           f"  (aspect {LOCK_W/LOCK_H:.3f})")
-    for pal, name in ((LIGHT, "cover-light"), (DARK, "cover-dark")):
-        dest = render(pal, name)
-        print(f"  {dest.relative_to(ROOT)}  {dest.stat().st_size} B")
+    for v in VARIANTS:
+        for pal, theme in ((LIGHT, "light"), (DARK, "dark")):
+            name = f"{v['name']}-{theme}"
+            dest = render(pal, name, v["w"], v["h"], v.get("scale", 1))
+            print(f"  {dest.relative_to(ROOT)}  {v['w']}x{v['h']}  {dest.stat().st_size} B")
     return 0
 
 
