@@ -35,8 +35,8 @@ tribute with no affiliation with, endorsement by, or sponsorship from Anthropic.
 The crab is drawn as pure CSS box-shadow pixel art; no image file of the mascot
 is redistributed here. The pixel frame coordinates embedded in
 lib/client.js were derived from the SillyTavern extension "Claude Web 2.0" by
-lulu (github.com/claudenoshujin/claude-web), which is distributed freely in the
-类脑 community. Credit for the original pixel artwork belongs to that author.
+lulu (github.com/claudenoshujin/claude-web). Credit for the original pixel
+artwork belongs to that author.
 
 This project reuses the geometry only. All selectors, keyframes, colour
 mapping, mounting logic and interaction behaviour are original to this project,

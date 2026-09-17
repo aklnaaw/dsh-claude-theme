@@ -25,7 +25,7 @@
 ## 安装
 
 ```bash
-dsh plugin --profile web add link:/绝对路径/dsh-claude-crab
+dsh plugin --profile web add link:/绝对路径/dsh-claude-theme/crab-plugin
 ```
 
 装完**重启一次 DSH**（新增插件需要重启才会进入启动图谱），然后刷新页面。
@@ -77,7 +77,7 @@ dsh plugin --profile web remove dsh-claude-crab
 
 - **代码**：MIT，见 [`LICENSE`](LICENSE)。
 - **Clawd 的像素几何**：Clawd 是 Anthropic 为 Claude Code 设计的吉祥物，**"Claude" 与 "Anthropic" 是 Anthropic PBC 的商标**，本项目是**非官方粉丝作品**，与 Anthropic 无任何隶属或背书关系。
-  帧数据来自酒馆扩展 [claude-web](https://github.com/claudenoshujin/claude-web)（作者 **lulu**，**类脑社区**免费分发）——原像素美术的功劳归该作者。本项目只复用几何数据，选择器、动画、配色、摆放全部自写，未从该仓库复制任何文件。
+  帧数据来自酒馆扩展 [claude-web](https://github.com/claudenoshujin/claude-web)（作者 **lulu**）——原像素美术的功劳归该作者。本项目只复用几何数据，选择器、动画、配色、摆放全部自写，未从该仓库复制任何文件。
 
 ---
 

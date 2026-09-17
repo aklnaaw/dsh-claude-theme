@@ -33,7 +33,7 @@ window.__ModuleLoader__.load({
      * depend on the skin being installed. Coordinates are anchored exactly the
      * way the skin anchors them, so both carriers draw identical art.
      *
-     * Geometry credit: lulu (claude-web, 类脑 community) — see the repo LICENSE. */
+     * Geometry credit: lulu (github.com/claudenoshujin/claude-web) — see the repo LICENSE. */
     var ART_W = 48, ART_H = 36;
     var FRAMES = {
       "open": "6px 6px 0 .3px var(--dcc-body), 9px 6px 0 .3px var(--dcc-body), 12px 6px 0 .3px var(--dcc-body), 15px 6px 0 .3px var(--dcc-body), 18px 6px 0 .3px var(--dcc-body), 21px 6px 0 .3px var(--dcc-body), 24px 6px 0 .3px var(--dcc-body), 27px 6px 0 .3px var(--dcc-body), 30px 6px 0 .3px var(--dcc-body), 33px 6px 0 .3px var(--dcc-body), 36px 6px 0 .3px var(--dcc-body), 39px 6px 0 .3px var(--dcc-body), 6px 9px 0 .3px var(--dcc-body), 9px 9px 0 .3px var(--dcc-body), 12px 9px 0 .3px var(--dcc-body), 15px 9px 0 .3px var(--dcc-body), 18px 9px 0 .3px var(--dcc-body), 21px 9px 0 .3px var(--dcc-body), 24px 9px 0 .3px var(--dcc-body), 27px 9px 0 .3px var(--dcc-body), 30px 9px 0 .3px var(--dcc-body), 33px 9px 0 .3px var(--dcc-body), 36px 9px 0 .3px var(--dcc-body), 39px 9px 0 .3px var(--dcc-body), 6px 12px 0 .3px var(--dcc-body), 9px 12px 0 .3px var(--dcc-body), 12px 12px 0 .3px var(--dcc-eye), 15px 12px 0 .3px var(--dcc-body), 18px 12px 0 .3px var(--dcc-body), 21px 12px 0 .3px var(--dcc-body), 24px 12px 0 .3px var(--dcc-body), 27px 12px 0 .3px var(--dcc-body), 30px 12px 0 .3px var(--dcc-body), 33px 12px 0 .3px var(--dcc-eye), 36px 12px 0 .3px var(--dcc-body), 39px 12px 0 .3px var(--dcc-body), 6px 15px 0 .3px var(--dcc-body), 9px 15px 0 .3px var(--dcc-body), 12px 15px 0 .3px var(--dcc-eye), 15px 15px 0 .3px var(--dcc-body), 18px 15px 0 .3px var(--dcc-body), 21px 15px 0 .3px var(--dcc-body), 24px 15px 0 .3px var(--dcc-body), 27px 15px 0 .3px var(--dcc-body), 30px 15px 0 .3px var(--dcc-body), 33px 15px 0 .3px var(--dcc-eye), 36px 15px 0 .3px var(--dcc-body), 39px 15px 0 .3px var(--dcc-body), 6px 18px 0 .3px var(--dcc-body), 9px 18px 0 .3px var(--dcc-body), 12px 18px 0 .3px var(--dcc-body), 15px 18px 0 .3px var(--dcc-body), 18px 18px 0 .3px var(--dcc-body), 21px 18px 0 .3px var(--dcc-body), 24px 18px 0 .3px var(--dcc-body), 27px 18px 0 .3px var(--dcc-body), 30px 18px 0 .3px var(--dcc-body), 33px 18px 0 .3px var(--dcc-body), 36px 18px 0 .3px var(--dcc-body), 39px 18px 0 .3px var(--dcc-body), 0px 21px 0 .3px var(--dcc-body), 3px 21px 0 .3px var(--dcc-body), 6px 21px 0 .3px var(--dcc-body), 9px 21px 0 .3px var(--dcc-body), 12px 21px 0 .3px var(--dcc-body), 15px 21px 0 .3px var(--dcc-body), 18px 21px 0 .3px var(--dcc-body), 21px 21px 0 .3px var(--dcc-body), 24px 21px 0 .3px var(--dcc-body), 27px 21px 0 .3px var(--dcc-body), 30px 21px 0 .3px var(--dcc-body), 33px 21px 0 .3px var(--dcc-body), 36px 21px 0 .3px var(--dcc-body), 39px 21px 0 .3px var(--dcc-body), 42px 21px 0 .3px var(--dcc-body), 45px 21px 0 .3px var(--dcc-body), 0px 24px 0 .3px var(--dcc-body), 3px 24px 0 .3px var(--dcc-body), 6px 24px 0 .3px var(--dcc-body), 9px 24px 0 .3px var(--dcc-body), 12px 24px 0 .3px var(--dcc-body), 15px 24px 0 .3px var(--dcc-body), 18px 24px 0 .3px var(--dcc-body), 21px 24px 0 .3px var(--dcc-body), 24px 24px 0 .3px var(--dcc-body), 27px 24px 0 .3px var(--dcc-body), 30px 24px 0 .3px var(--dcc-body), 33px 24px 0 .3px var(--dcc-body), 36px 24px 0 .3px var(--dcc-body), 39px 24px 0 .3px var(--dcc-body), 42px 24px 0 .3px var(--dcc-body), 45px 24px 0 .3px var(--dcc-body), 6px 27px 0 .3px var(--dcc-body), 9px 27px 0 .3px var(--dcc-body), 12px 27px 0 .3px var(--dcc-body), 15px 27px 0 .3px var(--dcc-body), 18px 27px 0 .3px var(--dcc-body), 21px 27px 0 .3px var(--dcc-body), 24px 27px 0 .3px var(--dcc-body), 27px 27px 0 .3px var(--dcc-body), 30px 27px 0 .3px var(--dcc-body), 33px 27px 0 .3px var(--dcc-body), 36px 27px 0 .3px var(--dcc-body), 39px 27px 0 .3px var(--dcc-body), 9px 30px 0 .3px var(--dcc-body), 15px 30px 0 .3px var(--dcc-body), 30px 30px 0 .3px var(--dcc-body), 36px 30px 0 .3px var(--dcc-body), 9px 33px 0 .3px var(--dcc-body), 15px 33px 0 .3px var(--dcc-body), 30px 33px 0 .3px var(--dcc-body), 36px 33px 0 .3px var(--dcc-body)",
@@ -215,6 +215,21 @@ window.__ModuleLoader__.load({
         var card = document.querySelector("[data-composer-card]");
         if (card === null) return false;
         if (root !== null && root.parentNode === card) return true;   // already there
+
+        /* Remove every stray crab in this card before adding ours.
+         *
+         * The guard above only knows about THIS closure's `root`. If apply()
+         * ever runs twice against the same card — two fibers, a re-activation,
+         * a hot reload — each closure holds its own `root`, both pass the
+         * guard, and the card ends up with two crabs stacked at identical
+         * coordinates. Ownership must be decided from the DOM, not from a
+         * per-closure variable. */
+        var strays = card.querySelectorAll(".dcc-crab");
+        for (var i = 0; i < strays.length; i++) {
+          var s = strays[i];
+          if (s !== root && s.parentNode) s.parentNode.removeChild(s);
+        }
+
         unmount();
 
         root = document.createElement("div");

@@ -11,7 +11,7 @@ This repo ships **two independent artifacts**:
 
 The skin is a pure asset directory, read and rendered by the installed skin-center plugin `@linxin666/dsh-client-ui-skin-center`. It contains no executable code. Branding cannot be part of the skin (see [Limitations](#limitations)), so it is a separate Cordis client plugin.
 
-**Status:** the skin works and is currently active on this machine (validated, zero warnings). The brand plugin is written and linked into the web profile but is **not yet verified in a browser** — it needs one DSH restart to enter the boot graph.
+**Status:** all three artifacts are verified working on this machine — the skin validates with zero warnings, and both plugins are linked into the web profile and confirmed through the real page DOM (sidebar shows the Claude starburst SVG and the text wordmark; an interactive Clawd sits on the composer edge).
 
 ---
 
@@ -108,7 +108,7 @@ Expected: `[('claude', [])]` — note the empty `warnings`.
 
 ### 2. The brand plugin
 
-> The code is written but **not yet verified**: its on-page effect has not been confirmed, and it has not been installed on a clean machine.
+> Verified working on a real page. Not yet installed on a clean machine.
 
 ```bash
 dsh plugin --profile web add link:/path/to/dsh-claude-theme/brand-plugin
@@ -189,7 +189,7 @@ code MONO  : 'JetBrains Mono','Noto Sans Mono CJK SC',ui-monospace,SFMono-Regula
 - **Remote fonts are hard-rejected.** `@import`, remote/protocol-relative URLs, absolute paths and `../` escapes are all rejected by the sanitizer (422). Fonts must live inside the skin directory and be referenced relatively.
 - **Tool-call cards are not a 1:1 reproduction.** claude.ai has no equivalent component; tool cards are DSH-specific UI. They are restyled in Claude's card language (hairline borders, restrained radii, warm layers) — stylistic alignment, not a replica.
 - **The preview images come from a render harness, not a real logged-in session.** See `scripts/render-harness/`.
-- **The brand plugin is not yet verified.** The code is in `brand-plugin/lib/` under the package name `dsh-claude-brand` and is already linked into the web profile, but its actual on-page effect has not been confirmed.
+- **The brand plugin is verified on a real page** (sidebar mark is the Claude starburst SVG, name reads "Claude"), but has not been installed on a clean machine.
 - **No reliance on token auto-derivation.** The loader's fallback derivation is effectively non-functional — across roughly 190 uncovered tokens it derives about 1, leaving the rest at stock values. All 278 tokens here are declared explicitly.
 - **Force-scoped.** All CSS is prefixed by the loader under `html[data-dsh-skin="claude"]`, so the skin only affects the page while selected and cannot leak into other skins.
 
@@ -208,5 +208,5 @@ code MONO  : 'JetBrains Mono','Noto Sans Mono CJK SC',ui-monospace,SFMono-Regula
 
 - The skin-center plugin [`@linxin666/dsh-client-ui-skin-center`](https://github.com/zhu1090093659/dsh-web), which provides skin loading, manifest validation, CSS sanitization and live switching.
 - The type designers behind Newsreader, Inter and JetBrains Mono, and Google Fonts' latin subset builds.
-- The SillyTavern extension [claude-web](https://github.com/claudenoshujin/claude-web) by **lulu** (类脑 community): source of the Clawd pixel geometry, and a key reference for the palette.
+- The SillyTavern extension [claude-web](https://github.com/claudenoshujin/claude-web) by **lulu**: source of the Clawd pixel geometry, and a key reference for the palette.
 - Anthropic's claude.ai interface, whose look this project reproduces.

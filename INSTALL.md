@@ -145,7 +145,7 @@ curl -s http://127.0.0.1:3080/api/skin-center/v2/active
 
 ## 第 5 步：安装品牌插件
 
-> **尚未验证**：代码已写好，但还没确认过页面里的实际效果，也没在干净环境里装过。下面流程是按仓库当前状态写的。
+> 已在本机真实页面验证生效；尚未在干净环境里装过一遍。
 
 ```bash
 dsh plugin --profile web add link:/path/to/dsh-claude-theme/brand-plugin

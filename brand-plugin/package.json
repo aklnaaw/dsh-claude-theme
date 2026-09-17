@@ -1,7 +1,6 @@
 {
   "name": "dsh-claude-brand",
   "version": "1.0.0",
-  "private": true,
   "description": "Rebrands the DSH Web GUI as Claude: the Anthropic starburst mark in the sidebar and hero, a text wordmark, and the document title.",
   "type": "module",
   "main": "lib/index.js",
@@ -28,5 +27,15 @@
         "@deepseek-ai/dsh-client-ui-sidebar"
       ]
     }
+  },
+  "author": "aklnaaw",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aklnaaw/dsh-claude-theme.git",
+    "directory": "brand-plugin"
+  },
+  "homepage": "https://github.com/aklnaaw/dsh-claude-theme#readme",
+  "bugs": {
+    "url": "https://github.com/aklnaaw/dsh-claude-theme/issues"
   }
 }

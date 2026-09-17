@@ -40,10 +40,11 @@
   "author": "aklnaaw",
   "repository": {
     "type": "git",
-    "url": "https://github.com/aklnaaw/dsh-claude-crab.git"
+    "url": "https://github.com/aklnaaw/dsh-claude-theme.git",
+    "directory": "crab-plugin"
   },
-  "homepage": "https://github.com/aklnaaw/dsh-claude-crab#readme",
+  "homepage": "https://github.com/aklnaaw/dsh-claude-theme#readme",
   "bugs": {
-    "url": "https://github.com/aklnaaw/dsh-claude-crab/issues"
+    "url": "https://github.com/aklnaaw/dsh-claude-theme/issues"
   }
 }
