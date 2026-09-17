@@ -572,11 +572,14 @@ window.__ModuleLoader__.load({
 
 			/* A settings page of its own, alongside General / Models / Plugins.
 			 * `settings.section` is an additive list owned by the settings
-			 * shell, so registering here needs no priority and shadows nothing. */
+			 * shell, so registering here needs no priority and shadows nothing.
+			 * Labelled 名字, not Claude: the page holds a display name, and an
+			 * entry reading "Claude" inside an already Claude-themed UI says
+			 * nothing about where to change it. */
 			slots.inject("settings.section", function () {
 				try {
 					return slots.register(
-						{ name: "settings.section", id: "claude", order: 50, label: "Claude" },
+						{ name: "settings.section", id: "claude", order: 50, label: "名字" },
 						NameSection,
 					);
 				} catch (e) {
