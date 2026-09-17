@@ -107,8 +107,12 @@ window.__ModuleLoader__.load({
       "@keyframes clawd3d-hop{0%,100%{translate:0 0}35%{translate:0 -5px}70%{translate:0 -1px}}",
       ".clawd3d[data-hop='1'] .clawd3d-px{animation:clawd3d-hop 520ms cubic-bezier(.34,1.2,.64,1)}",
 
-      /* Suppress the skin's inert pseudo-crab: one crab, not two. */
-      "[data-composer-card]::after{content:none !important}",
+      /* The skin's inert pseudo-crab is deliberately NOT suppressed here.
+       * This stylesheet loads even when the slot registration below fails, so
+       * an unconditional `content:none` would remove the skin's crab and leave
+       * nothing in its place — the composer would show NO crab at all. The
+       * skin instead hides its own crab in response to `data-clawd-interactive`,
+       * which is set only once this occupant is registered. */
 
       "@media (prefers-reduced-motion:reduce){",
       ".clawd3d,.clawd3d-say{transition:none}",
@@ -246,12 +250,6 @@ window.__ModuleLoader__.load({
     }
 
     function apply(ctx) {
-      /* Tell the skin's inert crab to stand down: exactly one Clawd. */
-      ctx.effect(function () {
-        document.body.setAttribute("data-clawd-interactive", "");
-        return function () { document.body.removeAttribute("data-clawd-interactive"); };
-      }, "dsh-claude-crab:marker");
-
       ctx.effect(function () {
         var el = document.createElement("style");
         el.setAttribute("data-dcc", "dsh-claude-crab");
@@ -263,11 +261,26 @@ window.__ModuleLoader__.load({
       var slots = ctx.get("slots");
       if (slots === undefined) return;
 
+      /* Stand the skin's inert crab down ONLY AFTER this occupant is actually
+       * registered, and from inside the injection callback so the marker's
+       * lifetime matches the registration's.
+       *
+       * Ordering is the whole point. An earlier version set the marker first
+       * and suppressed the skin crab from this stylesheet unconditionally. When
+       * the slot registration then did not take effect, the skin's crab had
+       * already been removed and nothing replaced it — the composer ended up
+       * with NO crab at all. Register first, hide second: one crab or the
+       * other, never zero. */
       slots.inject("conversation.input.overlay", function () {
-        return slots.register(
+        var dispose = slots.register(
           { name: "conversation.input.overlay", id: "clawd", order: 50 },
           Clawd,
         );
+        ctx.effect(function () {
+          document.body.setAttribute("data-clawd-interactive", "");
+          return function () { document.body.removeAttribute("data-clawd-interactive"); };
+        }, "dsh-claude-crab:marker");
+        return dispose;
       });
     }
 
