@@ -9,7 +9,7 @@ independent of the skin** and can be installed on their own:
 | --- | --- | --- | --- |
 | Skin | `claude/` | **Yes** | Copy to `$DSH_HOME/skins/claude/`, select it in Settings |
 | Claude plugin | `brand-plugin/` | **No** | `dsh plugin --profile web add link:<abs path>` + restart |
-| Crab plugin | `crab-plugin/` | **No** | `dsh plugin --profile web add link:<abs path>` + restart |
+| Clawd plugin | `crab-plugin/` | **No** | `dsh plugin --profile web add link:<abs path>` + restart |
 
 ### How they depend on each other
 
@@ -27,7 +27,7 @@ things:
 | `crab-plugin` | `timer` | `--dsw-*` plus its own `--dcc-*` |
 
 **The key point:** neither plugin references a single skin variable (skin
-variables use the `--cl-*` prefix; the reference count is zero). The crab plugin
+variables use the `--cl-*` prefix; the reference count is zero). The Clawd plugin
 embeds its own pixel frame data instead of reading it from the skin.
 
 So the plugins can be installed without the skin — the crab and the rebranding

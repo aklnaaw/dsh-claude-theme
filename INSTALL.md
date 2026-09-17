@@ -12,7 +12,9 @@
 - 本文假设 GUI 在 `http://127.0.0.1:3080`。端口不同的话把下面的 URL 一起换掉。
 - 仓库路径以 `/path/to/dsh-claude-theme` 代指，实际用本仓库的绝对路径。
 
-前置条件：皮肤中心插件 `@linxin666/dsh-client-ui-skin-center` 已安装。本皮肤在该插件的 **v0.3.23** 上测试。检查：
+**前置条件只对皮肤成立**：装皮肤需要第三方皮肤中心插件
+`@linxin666/dsh-client-ui-skin-center`（皮肤没有别的加载入口）。本皮肤在该插件的
+**v0.3.23** 上测试。第 5、6 步的两个插件**不经过皮肤中心**，只装插件的话可以跳过这一节。检查：
 
 ```bash
 cat "$DSH_HOME/profiles/web/node_modules/@linxin666/dsh-client-ui-skin-center/package.json" \
@@ -172,12 +174,46 @@ print('bundles     :', [b for b in p['dsh']['profile']['bundles'] if 'brand' in 
 
 两处都应出现 `dsh-claude-brand`（bundle 列表由 `dsh plugin` 按已安装状态自动调和，只有声明了 `dsh.bundle.patch` 的包才会进入这一层）。
 
-验证插件是否真的生效：页面侧边栏的鲸鱼 logo 应变成星芒标记、品牌文字应变成 "Claude"、浏览器标签标题里不应再有 "DeepSeek Harness"。**没重启的话这三处都不会变。**
+验证插件是否真的生效：页面侧边栏的鲸鱼 logo 应变成星芒标记、品牌文字应变成 "Claude"、浏览器标签标题里不应再有 "DeepSeek Harness"、浏览器标签页图标应从鲸鱼变成星芒。**没重启的话这四处都不会变。**
 
 卸载：
 
 ```bash
 dsh plugin --profile web remove dsh-claude-brand
+# 然后重启 DSH
+```
+
+## 第 6 步：安装 Clawd 插件
+
+```bash
+dsh plugin --profile web add link:/path/to/dsh-claude-theme/crab-plugin
+```
+
+- 包名 `dsh-claude-crab`。
+- 同样用 `link:` + **绝对路径**，同样必须带 `--profile web`。
+- 这个插件**不依赖皮肤**：像素帧数据内置，配色走官方 `--dsw-*` 变量。只装它、不装皮肤也能用。
+
+**同样需要重启 DSH 一次**（客户端插件不能热切换）。
+
+重启后确认它进了 profile：
+
+```bash
+python3 -c "
+import json, os
+p = json.load(open(os.path.join(os.environ['DSH_HOME'], 'profiles/web/package.json')))
+print('dependencies:', [k for k in p['dependencies'] if 'crab' in k.lower()])
+print('bundles     :', [b for b in p['dsh']['profile']['bundles'] if 'crab' in b.lower()])
+"
+```
+
+验证：输入框上沿应出现一只像素蟹。鼠标靠近时它的眼睛会朝四个方向看，停一会儿会眨眼，**戳一下会跳起来说一句话**。
+
+装完应当**恰好一只蟹**：皮肤在检测到插件蟹进入 DOM 后会主动让位（`body:has(.dcc-crab)`），所以两边不会重叠，任何一边失败也不会出现零只。
+
+卸载：
+
+```bash
+dsh plugin --profile web remove dsh-claude-crab
 # 然后重启 DSH
 ```
 
@@ -259,3 +295,12 @@ rm -rf "$DSH_HOME/skins/claude"
 dsh plugin --profile web remove dsh-claude-brand
 # 然后重启 DSH
 ```
+
+卸载 Clawd 插件：
+
+```bash
+dsh plugin --profile web remove dsh-claude-crab
+# 然后重启 DSH
+```
+
+三个产物互相独立，可以只卸其中任意一个。卸掉 Clawd 插件后输入框上沿的蟹会交还给皮肤（皮肤的静态蟹自动接管），不会留下空位。

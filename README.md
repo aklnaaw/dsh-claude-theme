@@ -8,7 +8,7 @@
 | --- | --- | --- | --- |
 | 皮肤 | `claude/` | **需要** | 拷贝到 `$DSH_HOME/skins/claude/`，在设置里选中 |
 | Claude 插件 | `brand-plugin/` | **不需要** | `dsh plugin --profile web add link:<绝对路径>` + 重启 |
-| 蟹插件 | `crab-plugin/` | **不需要** | `dsh plugin --profile web add link:<绝对路径>` + 重启 |
+| Clawd 插件 | `crab-plugin/` | **不需要** | `dsh plugin --profile web add link:<绝对路径>` + 重启 |
 
 ### 三者的依赖关系
 
@@ -21,13 +21,13 @@
 | `brand-plugin` | `slots` | `--dsw-*`（官方主题服务提供） |
 | `crab-plugin` | `timer` | `--dsw-*` + 自己定义的 `--dcc-*` |
 
-**关键点**：两个插件都**不引用任何皮肤变量**（皮肤变量是 `--cl-*` 前缀，引用次数为 0）。蟹插件的像素帧数据是**内置**的，不依赖皮肤提供。
+**关键点**：两个插件都**不引用任何皮肤变量**（皮肤变量是 `--cl-*` 前缀，引用次数为 0）。Clawd 插件的像素帧数据是**内置**的，不依赖皮肤提供。
 
 所以可以只装插件、不装皮肤——蟹和品牌替换照常工作，只是配色会跟随你当前用的主题。反过来只装皮肤不装插件也可以，皮肤自带问候语旁的像素粒子。
 
 **为什么品牌替换不做成皮肤的一部分**：本地皮肤无法运行 `hooks.mjs`（加载器只对官方市场来源放行，见[已知限制](#已知限制)），而换品牌标记需要替换插槽占用者，那是插件才能做的事。
 
-**状态**：三个产物都已在本机实测生效——皮肤校验零告警，Claude 插件与蟹插件均已 `link:` 进 web profile 并通过真实页面 DOM 验证（侧栏是 Claude 星芒 SVG + 文字字标；输入框上沿有可交互的 Clawd）。
+**状态**：三个产物都已在本机实测生效——皮肤校验零告警，Claude 插件与 Clawd 插件均已 `link:` 进 web profile 并通过真实页面 DOM 验证（侧栏是 Claude 星芒 SVG + 文字字标；输入框上沿有可交互的 Clawd）。
 
 ---
 
@@ -79,7 +79,7 @@ dsh-claude-theme/
 │   │   └── dark.jpg
 │   ├── crab.generated.css           # 问候语像素粒子（gen-crab.py 生成，勿手改）
 │   └── patches.base.css             # 手写的 L3 选择器层（patches.css 的输入）
-├── crab-plugin/                     # 蟹插件 dsh-claude-crab（可交互 Clawd，自包含）
+├── crab-plugin/                     # Clawd 插件 dsh-claude-crab（自包含）
 │   ├── package.json                 #   声明 dsh.bundle.patch 与 dsh.client.platform=web
 │   ├── cordis.patch.yml             #   向 web roster 插入 dsh-claude-crab 行
 │   ├── LICENSE                      #   MIT + Clawd 署名
@@ -166,7 +166,7 @@ dsh plugin --profile web add link:/path/to/dsh-claude-theme/brand-plugin
 - **工具调用卡片不是 1:1 复刻。** claude.ai 没有对应组件，工具卡片是 DSH 特有的界面。这里只是按 Claude 的卡片语言（发丝边框、克制的圆角、暖色层）重绘，属于风格对齐而非还原。
 - **蟹的像素几何来自第三方参考实现。** 像素点阵数据取自酒馆扩展 [claude-web](https://github.com/claudenoshujin/claude-web)，作者 **lulu**。原像素美术的功劳归该作者；本项目只复用了点阵几何，选择器、动画、配色与摆放均为自写。见下方[许可与声明](#许可与声明)。
 - **宠物面板里的 Clawd 不是逐帧动画。** 宠物系统要 8×9 图集，而蟹只有一套静态像素几何，所以九格画的是同一只蟹（按行着色），不是九段动画。要真动画得补美术。
-- **蟹插件不通过 slot 注册。** 早期版本把 React 组件注册进 `conversation.input.overlay`，但 slot 渲染抛错会被错误边界吞掉——插件确实加载了（皮肤让位），蟹却没出现，且看不到任何报错。现在改为直接挂到官方的 `[data-composer-card]` 上，自己完全掌握元素生命周期。代价是耦合 composer 的 DOM 契约而非 slot 体系；若该属性变更，插件蟹消失、皮肤蟹自动接管。
+- **Clawd 插件不通过 slot 注册。** 早期版本把 React 组件注册进 `conversation.input.overlay`，但 slot 渲染抛错会被错误边界吞掉——插件确实加载了（皮肤让位），蟹却没出现，且看不到任何报错。现在改为直接挂到官方的 `[data-composer-card]` 上，自己完全掌握元素生命周期。代价是耦合 composer 的 DOM 契约而非 slot 体系；若该属性变更，插件蟹消失、皮肤蟹自动接管。
 - **预览图是真实运行界面的截图。**
 - **Claude 插件已在真实页面验证**（侧栏品牌标记是 Claude 星芒 SVG、品牌名为 "Claude"），但尚未在干净环境里装过。
 - **不依赖 token 自动派生。** 加载器的回退派生实际失效：在约 190 个未被覆盖的 token 上只能派生出约 1 个，其余保留出厂值。所以这里 278 个 token 全部显式声明，不留给派生。
