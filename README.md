@@ -57,6 +57,8 @@
 - **字体内置**：4 个 woff2、364 KB，全部自托管在皮肤目录内，不发起任何外部请求。
 - **圆角阶梯与药丸输入框**：`patches.css` 用 L3 自由选择器重排圆角、输入框、卡片与滚动条。
 - **第三方插件融合**：对非官方插件的界面做了一层中性化处理，使其跟随 Claude 的卡片语言而不是自带配色。
+- **可改的名字与头像**：侧栏底部、设置上方有一行头像 + 名字 + 副标题，点开就地编辑（名字、副标题、头像）。新装默认显示 `moon` 和内置头像；只存在这台浏览器里，不上传。**只对没有记录的新用户生效**——主动清空不会被默认值覆盖。
+- **首页问候语轮换**：24 句轮换，第一句永远是时段问候（早上好/中午好/晚上好），其余每次打开页面换一句，并带上你设的名字。
 - **切换即时生效**：皮肤中心在页面内原子切换，不刷新、不重启。
 
 ---
@@ -94,16 +96,23 @@ dsh-claude-theme/
 ├── brand-plugin/                    # Claude 插件 dsh-claude-brand
 │   ├── package.json                 #   声明 dsh.bundle.patch 与 dsh.client.platform=web
 │   ├── cordis.patch.yml             #   向 web roster 插入 dsh-claude-brand 行
+│   ├── assets/default-avatar.webp   #   内置默认头像（内联 data URL 的源文件）
 │   └── lib/
 │       ├── index.js                 #   host 半边：有意留空（无 host 状态、无 RPC）
-│       └── client.js                #   浏览器半边：slot 注册 + 文案改写
+│       └── client.js                #   浏览器半边：slot + 文案改写 + 名字头像编辑器
+├── cover/                           # 封面图，两套配色
+│   ├── cover-light.png              #   1920×1080，16:9，做视频封面
+│   ├── cover-dark.png
+│   ├── social-light.png             #   1280×640，2:1，给 GitHub 仓库卡片
+│   └── social-dark.png
 ├── scripts/
 │   ├── gen-skin-css.py              # 由调色板重新生成 claude/skin.css
-│   ├── validate-skin.mjs            # 用真实 skin-center 清洗器校验皮肤
-│   ├── capture-preview.sh           # 截图做预览图（需要已认证 URL）
-│   ├── render-harness/              # 无认证依赖的预览渲染 + 计算样式回读
 │   ├── gen-crab.py                  # 生成问候语粒子并合成 patches.css
-│   └── gen-pet.py                   # 生成 Clawd 宠物目录的图集与清单
+│   ├── gen-pet.py                   # 生成 Clawd 宠物目录的图集与清单
+│   ├── gen-cover.py                 # 按两种比例渲染封面图
+│   ├── gen-brand-avatar.py          # 把默认头像切进 Claude 插件
+│   ├── cover-assets.json            # gen-cover.py 用的品牌图形数据
+│   └── validate-skin.mjs            # 用真实 skin-center 清洗器校验皮肤
 ├── README.md                        # 本文件
 ├── README.en.md                     # 英文版
 ├── INSTALL.md                       # 逐步安装与排错
@@ -148,14 +157,27 @@ dsh plugin --profile web add link:/path/to/dsh-claude-theme/brand-plugin
 # 然后重启 DSH 一次（客户端插件在启动时加载，不能热切换）
 ```
 
-包名 `dsh-claude-brand`。插件做四件事：
+包名 `dsh-claude-brand`。插件做六件事：
 
 1. 在 `sidebar.brand.mark` 和 `conversation.hero.brand.mark` 上以优先级 **-10** 注册，遮住官方占位的鲸鱼 logo，换成内联 SVG 的 Anthropic/Claude 放射状星芒标记（`currentColor`，随主题变色）。
 2. 在 `sidebar.brand.name` 上把官方的字形轮廓替换成真文字 "Claude"。
-3. 把 hero 标题（"探索未至之境" / "Into the Unknown"）换成按时间问候，并改写文档标题里的产品名。
-4. 所有副作用都挂在 `ctx.effect` 上，停用插件时会还原。
+3. 把 hero 标题（"探索未至之境" / "Into the Unknown"）换成轮换问候语，并改写文档标题里的产品名。
+4. 声明浏览器标签页图标。页面本身没有任何 `<link rel="icon">`，浏览器会退回请求 `/favicon.svg`——那是 DSH 安装目录里的鲸鱼，升级会被覆盖。插件改为自己声明星芒，不去改不属于自己的文件。
+5. 在设置里加一个 **名字** 页，用来改名字、副标题和头像。
+6. 在侧栏底部、设置上方加一行头像 + 名字 + 副标题，点开就地编辑。
 
 关于优先级：slot 遮蔽是**数字越小越优先渲染**，所以 -10 压过官方品牌插件的 0；同优先级注册 `single` slot 会直接抛错。
+
+### 三、Clawd 插件
+
+```bash
+dsh plugin --profile web add link:/path/to/dsh-claude-theme/crab-plugin
+# 同样重启 DSH 一次
+```
+
+包名 `dsh-claude-crab`。它**不依赖皮肤**——像素帧内置，配色走官方 `--dsw-*` 变量，所以单独装也能用。
+
+装完应当**恰好一只蟹**：皮肤用 `body:has(.dcc-crab)` 检测插件蟹是否在 DOM 里，在则让位。任何一边失败，结果都是一只蟹，不会两只也不会零只。
 
 完整的安装与排查步骤见 [`INSTALL.md`](INSTALL.md)。
 

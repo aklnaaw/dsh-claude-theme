@@ -48,11 +48,6 @@ occupants, which only a plugin can do.
 
 ## Preview
 
-```markdown
-![Light](claude/preview/light.jpg)
-![Dark](claude/preview/dark.jpg)
-```
-
 ![](claude/preview/light.jpg)
 
 ![](claude/preview/dark.jpg)
@@ -70,6 +65,8 @@ Screenshots of the real running UI at 1440×900. Sampled to verify: the light ca
 - **Fonts vendored** — 4 woff2 files, 364 KB total, self-hosted inside the skin directory. No external requests.
 - **Radius ladder and pill composer** — `patches.css` reworks radii, the composer, cards and scrollbars via L3 free selectors.
 - **Third-party plugin blending** — non-official plugin chrome is neutralized to follow Claude's card language instead of its own palette.
+- **Editable name and avatar** — a row at the sidebar foot, above Settings, showing avatar, name and a caption. Clicking it opens an editor in place (name, caption, avatar). A fresh install ships `moon` and a bundled avatar; values live only in this browser and are never uploaded. **Defaults apply only when no record exists** — deliberately clearing a field does not bring the default back.
+- **Rotating greeting** — 24 lines, with index 0 always the time-of-day greeting (早上好 / 中午好 / 晚上好). The line changes on each page load and carries the name you set.
 - **Live switching** — the skin center swaps atomically in the page. No reload, no restart.
 
 ---
@@ -89,19 +86,39 @@ dsh-claude-theme/
 │   │   ├── jetbrains-mono-normal.woff2  # variable 100–800
 │   │   ├── fonts.generated.css      # build-fonts.sh output, inlined by gen-skin-css.py
 │   │   └── build-fonts.sh           # re-downloads the woff2 files
-│   └── preview/                     # preview images (1440x900, light + dark)
-│       ├── light.jpg                #   1440×900
-│       └── dark.jpg                 #   1440×900
+│   ├── preview/                     # preview images (1440x900, light + dark)
+│   │   ├── light.jpg
+│   │   └── dark.jpg
+│   ├── crab.generated.css           # pixel sparkle beside the greeting (gen-crab.py; do not edit)
+│   └── patches.base.css             # the hand-written L3 layer (input to patches.css)
+├── crab-plugin/                     # Clawd plugin, dsh-claude-crab (self-contained)
+│   ├── package.json                 #   declares dsh.bundle.patch and dsh.client.platform=web
+│   ├── cordis.patch.yml             #   inserts the dsh-claude-crab row into the web roster
+│   ├── README.md                    #   the plugin's own notes
+│   └── lib/
+│       ├── index.js                 #   host half: deliberately empty
+│       └── client.js                #   browser half: embedded pixel frames + DOM mounting
+├── pet/                             # Clawd for the pet system (spritesheet + manifest)
 ├── brand-plugin/                    # Claude plugin, dsh-claude-brand
 │   ├── package.json                 #   declares dsh.bundle.patch and dsh.client.platform=web
 │   ├── cordis.patch.yml             #   inserts the dsh-claude-brand row into the web roster
+│   ├── assets/default-avatar.webp   #   the shipped default avatar (source for the inlined data URL)
 │   └── lib/
 │       ├── index.js                 #   host half: deliberately empty (no host state, no RPC)
-│       └── client.js                #   browser half: slot registration + text rewriting
+│       └── client.js                #   browser half: slots, text rewriting, name/avatar editor
+├── cover/                           # cover art, both palettes
+│   ├── cover-light.png              #   1920x1080, 16:9, for video
+│   ├── cover-dark.png
+│   ├── social-light.png             #   1280x640, 2:1, for the GitHub repo card
+│   └── social-dark.png
 ├── scripts/
 │   ├── gen-skin-css.py              # regenerate claude/skin.css from the palette
-│   ├── validate-skin.mjs            # validate the skin with the real skin-center sanitizer
-│   └── capture-preview.sh           # screenshot the GUI for previews (not working yet; see scripts/README.md)
+│   ├── gen-crab.py                  # generate the greeting sparkle and compose patches.css
+│   ├── gen-pet.py                   # generate the pet spritesheet and manifest
+│   ├── gen-cover.py                 # render the cover art at both aspects
+│   ├── gen-brand-avatar.py          # splice the default avatar into the Claude plugin
+│   ├── cover-assets.json            # extracted brand geometry used by gen-cover.py
+│   └── validate-skin.mjs            # validate the skin with the real skin-center sanitizer
 ├── README.md                        # Chinese
 ├── README.en.md                     # this file
 ├── INSTALL.md                       # step-by-step install and troubleshooting
@@ -146,16 +163,31 @@ dsh plugin --profile web add link:/path/to/dsh-claude-theme/brand-plugin
 # then restart DSH once (client plugins load at startup; they cannot hot-swap)
 ```
 
-Package name: `dsh-claude-brand`. The plugin does four things:
+Package name: `dsh-claude-brand`. The plugin does six things:
 
 1. Registers at priority **-10** on the `sidebar.brand.mark` and `conversation.hero.brand.mark` slots to shadow the official whale logo, replacing it with an inline SVG of the Anthropic/Claude radial starburst mark (`currentColor`, so it follows the theme).
 2. Replaces the official glyph-outline wordmark on `sidebar.brand.name` with real text reading "Claude".
-3. Swaps the hero headline ("探索未至之境" / "Into the Unknown") for a time-of-day greeting, and rewrites the product name in the document title.
-4. Hangs every side effect on `ctx.effect` so disabling the plugin restores the originals.
+3. Swaps the hero headline ("探索未至之境" / "Into the Unknown") for a rotating greeting, and rewrites the product name in the document title.
+4. Declares its own browser-tab icon. The page ships no `<link rel="icon">` at all, so the browser falls back to `/favicon.svg` — DSH's whale, which lives inside the DSH install and would be clobbered by an upgrade. The plugin declares the starburst instead of editing a file it does not own.
+5. Adds a **Claude** settings page (labelled 名字) for the display name, caption and avatar.
+6. Adds the avatar row at the sidebar foot, above Settings, whose click opens an in-place editor.
 
 On priority: slot shadowing renders the **lowest number first**, so -10 outranks the official brand plugin at 0; registering at the same priority on a `single` slot throws.
 
+### 3. The Clawd plugin
+
+```bash
+dsh plugin --profile web add link:/path/to/dsh-claude-theme/crab-plugin
+# then restart DSH once, same as above
+```
+
+Package name: `dsh-claude-crab`. It does **not** depend on the skin — its pixel frames are embedded and it colours itself from the official `--dsw-*` tokens, so it works installed on its own.
+
+Exactly one crab should appear: the skin detects the plugin's crab in the DOM via `body:has(.dcc-crab)` and stands down, so a failure on either side leaves one crab rather than two or none.
+
 Full install and troubleshooting steps: [`INSTALL.md`](INSTALL.md).
+
+**Too lazy for all this? Hand it to dsh, Claude Code or codex and let them install it.**
 
 ---
 
@@ -164,6 +196,9 @@ Full install and troubleshooting steps: [`INSTALL.md`](INSTALL.md).
 - **Locally-authored skins cannot run `hooks.mjs`.** The loader refuses outright for any skin without official-market provenance, returning HTTP 403 `hooks-require-review`. That is why branding is a separate plugin rather than a skin hook.
 - **Remote fonts are hard-rejected.** `@import`, remote/protocol-relative URLs, absolute paths and `../` escapes are all rejected by the sanitizer (422). Fonts must live inside the skin directory and be referenced relatively.
 - **Tool-call cards are not a 1:1 reproduction.** claude.ai has no equivalent component; tool cards are DSH-specific UI. They are restyled in Claude's card language (hairline borders, restrained radii, warm layers) — stylistic alignment, not a replica.
+- **The Clawd pixel geometry comes from a third-party reference implementation.** The dot matrix was taken from the SillyTavern extension [claude-web](https://github.com/claudenoshujin/claude-web) by **lulu**. Credit for the original pixel art belongs to that author; this project reuses only the geometry, and the selectors, animation, colours and placement are its own. See [License and notices](#license-and-notices).
+- **The Clawd in the pet panel is not frame animation.** The pet system wants an 8×9 spritesheet, but the crab has a single set of static pixel geometry, so all nine cells draw the same crab (tinted per row) rather than nine frames. Real animation needs more art.
+- **The Clawd plugin does not register through a slot.** An earlier build registered a React component into `conversation.input.overlay`, but a slot render that throws is swallowed by the error boundary — the plugin really was loaded (the skin stood down) while no crab appeared and nothing was logged. It now mounts directly onto the official `[data-composer-card]` and owns the element's lifecycle. The cost is coupling to the composer's DOM contract rather than the slot system; if that attribute changes the plugin's crab disappears and the skin's crab takes over.
 - **The preview images are screenshots of the real running UI.**
 - **The Claude plugin is verified on a real page** (sidebar mark is the Claude starburst SVG, name reads "Claude"), but has not been installed on a clean machine.
 - **No reliance on token auto-derivation.** The loader's fallback derivation is effectively non-functional — across roughly 190 uncovered tokens it derives about 1, leaving the rest at stock values. All 278 tokens here are declared explicitly.
@@ -176,6 +211,7 @@ Full install and troubleshooting steps: [`INSTALL.md`](INSTALL.md).
 - Code and CSS: MIT, see [`LICENSE`](LICENSE).
 - Vendored fonts: Newsreader, Inter and JetBrains Mono are licensed under the SIL Open Font License 1.1 and are included in `claude/assets/fonts/`.
 - Trademarks: this is an **unofficial fan tribute**. "Claude" and "Anthropic" are trademarks of Anthropic PBC. This project is not affiliated with or endorsed by Anthropic.
+- **Clawd attribution.** Clawd, the pixel crab mascot of Claude Code, belongs to Anthropic. The crab in this repo is **pure CSS**, generated by `scripts/gen-crab.py` from dot-matrix data with no image files. The geometry comes from the SillyTavern extension [claude-web](https://github.com/claudenoshujin/claude-web) by **lulu** — credit for the original pixel art belongs to that author. This project reuses the geometry only and copied no files from that repo; the selectors, animation, colours and placement are its own.
 - **Copernicus and StyreneB are not included.** Those are Anthropic's actual typefaces and are licensed fonts that cannot be redistributed. This project substitutes the open Newsreader (for Copernicus's serif role) and Inter (for StyreneB's sans role) — similar in spirit, not identical.
 
 ---
@@ -184,5 +220,5 @@ Full install and troubleshooting steps: [`INSTALL.md`](INSTALL.md).
 
 - The skin-center plugin [`@linxin666/dsh-client-ui-skin-center`](https://github.com/zhu1090093659/dsh-web), which provides skin loading, manifest validation, CSS sanitization and live switching.
 - The type designers behind Newsreader, Inter and JetBrains Mono, and Google Fonts' latin subset builds.
-- The SillyTavern extension [claude-web](https://github.com/claudenoshujin/claude-web) by **lulu**: source of the Clawd pixel geometry, and a key reference for the palette.
 - Anthropic's claude.ai interface, whose look this project reproduces.
+- The SillyTavern extension [claude-web](https://github.com/claudenoshujin/claude-web) by **lulu**: source of the Clawd pixel geometry, and a key reference for the palette.
