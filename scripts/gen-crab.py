@@ -15,7 +15,7 @@ has no interactive counterpart — so it stays here, in the skin.
 Removing the composer crab also removed the 15 embedded frame variables
 (~46 KB, 84% of this file): only the crab's own placements ever read them.
 
-Geometry credit for the Clawd mascot: lulu (github.com/claudenoshujin/claude-web).
+Geometry credit for the Clawd mascot: claudenoshujin (github.com/claudenoshujin/claude-web).
 See the repository LICENSE.
 """
 import pathlib

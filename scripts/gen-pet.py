@@ -72,7 +72,7 @@ def main() -> None:
                        ['idle', 'running-right', 'running-left', 'waving', 'jumping',
                         'failed', 'waiting', 'running', 'review']},
         },
-        "description": "Claude Code 的像素小螃蟹。原像素美术 by lulu（claude-web），非官方移植。",
+        "description": "Claude Code 的像素小螃蟹。原像素美术 by claudenoshujin（claude-web），非官方移植。",
         "license": "MIT",
     }
     (out / 'pet.json').write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding='utf-8')

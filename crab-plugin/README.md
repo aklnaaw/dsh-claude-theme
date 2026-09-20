@@ -77,11 +77,11 @@ dsh plugin --profile web remove dsh-claude-crab
 
 - **代码**：MIT，见 [`LICENSE`](LICENSE)。
 - **Clawd 的像素几何**：Clawd 是 Anthropic 为 Claude Code 设计的吉祥物，**"Claude" 与 "Anthropic" 是 Anthropic PBC 的商标**，本项目是**非官方粉丝作品**，与 Anthropic 无任何隶属或背书关系。
-  帧数据来自酒馆扩展 [claude-web](https://github.com/claudenoshujin/claude-web)（作者 **lulu**）——原像素美术的功劳归该作者。本项目只复用几何数据，选择器、动画、配色、摆放全部自写，未从该仓库复制任何文件。
+  帧数据来自酒馆扩展 [claude-web](https://github.com/claudenoshujin/claude-web)（作者 **claudenoshujin**）——原像素美术的功劳归该作者。本项目只复用几何数据，选择器、动画、配色、摆放全部自写，未从该仓库复制任何文件。
 
 ---
 
 ## 致谢
 
-- **lulu**（[claude-web](https://github.com/claudenoshujin/claude-web)）：Clawd 像素几何数据的来源。
+- **claudenoshujin**（[claude-web](https://github.com/claudenoshujin/claude-web)）：Clawd 像素几何数据的来源。
 - Anthropic：Clawd 这个角色本身。

@@ -190,7 +190,7 @@ dsh plugin --profile web add link:/path/to/dsh-claude-theme/crab-plugin
 - **本地皮肤不能跑 `hooks.mjs`。** 加载器对任何没有官方市场来源的皮肤直接拒绝，返回 HTTP 403 `hooks-require-review`。这就是品牌替换只能做成独立插件、而不是皮肤钩子的原因。
 - **远程字体被硬拒。** `@import`、远程/协议相对 URL、绝对路径、`../` 逃逸都会被清洗器拒绝（422）。字体只能放在皮肤目录内、用相对路径引用。
 - **工具调用卡片不是 1:1 复刻。** claude.ai 没有对应组件，工具卡片是 DSH 特有的界面。这里只是按 Claude 的卡片语言（发丝边框、克制的圆角、暖色层）重绘，属于风格对齐而非还原。
-- **蟹的像素几何来自第三方参考实现。** 像素点阵数据取自酒馆扩展 [claude-web](https://github.com/claudenoshujin/claude-web)，作者 **lulu**。原像素美术的功劳归该作者；本项目只复用了点阵几何，选择器、动画、配色与摆放均为自写。见下方[许可与声明](#许可与声明)。
+- **蟹的像素几何来自第三方参考实现。** 像素点阵数据取自酒馆扩展 [claude-web](https://github.com/claudenoshujin/claude-web)，作者 **claudenoshujin**。原像素美术的功劳归该作者；本项目只复用了点阵几何，选择器、动画、配色与摆放均为自写。见下方[许可与声明](#许可与声明)。
 - **宠物面板里的 Clawd 不是逐帧动画。** 宠物系统要 8×9 图集，而蟹只有一套静态像素几何，所以九格画的是同一只蟹（按行着色），不是九段动画。要真动画得补美术。
 - **Clawd 插件不通过 slot 注册。** 早期版本把 React 组件注册进 `conversation.input.overlay`，但 slot 渲染抛错会被错误边界吞掉——插件确实加载了（皮肤让位），蟹却没出现，且看不到任何报错。现在改为直接挂到官方的 `[data-composer-card]` 上，自己完全掌握元素生命周期。代价是耦合 composer 的 DOM 契约而非 slot 体系；若该属性变更，插件蟹消失、皮肤蟹自动接管。
 - **预览图是真实运行界面的截图。**
@@ -205,7 +205,7 @@ dsh plugin --profile web add link:/path/to/dsh-claude-theme/crab-plugin
 - 代码与 CSS：MIT，见 [`LICENSE`](LICENSE)。
 - 内置字体：Newsreader、Inter、JetBrains Mono 均为 SIL Open Font License 1.1 授权，随附于 `claude/assets/fonts/`。
 - 商标：这是**非官方粉丝复刻**。"Claude" 与 "Anthropic" 是 Anthropic PBC 的商标。本项目与 Anthropic 无任何隶属或背书关系。
-- **Clawd 的署名。** Clawd（Claude Code 的像素蟹吉祥物）属于 Anthropic。本仓的蟹是**纯 CSS**：由 `scripts/gen-crab.py` 从像素点阵数据生成，不含任何图片文件。点阵几何源自酒馆扩展 [claude-web](https://github.com/claudenoshujin/claude-web)，作者 **lulu**——原像素美术的功劳归该作者。本项目只复用几何数据，未从该仓库复制任何文件；选择器、动画、配色、摆放均为自写。
+- **Clawd 的署名。** Clawd（Claude Code 的像素蟹吉祥物）属于 Anthropic。本仓的蟹是**纯 CSS**：由 `scripts/gen-crab.py` 从像素点阵数据生成，不含任何图片文件。点阵几何源自酒馆扩展 [claude-web](https://github.com/claudenoshujin/claude-web)，作者 **claudenoshujin**——原像素美术的功劳归该作者。本项目只复用几何数据，未从该仓库复制任何文件；选择器、动画、配色、摆放均为自写。
 - **Copernicus 和 StyreneB 未包含在内。** 这两个是 Anthropic 实际使用的字体，属于商业授权字体，不能分发。本项目用开源的 Newsreader（替代 Copernicus 的衬线角色）和 Inter（替代 StyreneB 的无衬线角色）作为替代品——形似但不等同。
 
 ---

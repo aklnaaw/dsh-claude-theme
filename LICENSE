@@ -53,7 +53,7 @@ plugin works standalone. The skin keeps only the small greeting sparkle in
 claude/crab.generated.css.
 
 The pixel geometry was derived from the SillyTavern extension "Claude Web 2.0"
-by lulu (github.com/claudenoshujin/claude-web). Credit for the original pixel
+by claudenoshujin (github.com/claudenoshujin/claude-web). Credit for the original pixel
 artwork belongs to that author.
 This project reproduces the geometry only — all selectors, keyframes, colour
 mapping and placement are original to this project, and no file from that
