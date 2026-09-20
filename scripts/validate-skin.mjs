@@ -1,10 +1,63 @@
 // Validate a skin with the REAL skin-center sanitizer + manifest validator, so
 // failures surface here instead of silently in the browser.
 import { createRequire } from 'node:module'
-import { readFileSync, existsSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { readFileSync, existsSync, readdirSync } from 'node:fs'
+import { resolve, join } from 'node:path'
+import { homedir } from 'node:os'
 
-const SC = '/home/aklnaaw/.dsh/profiles/web/node_modules/@linxin666/dsh-client-ui-skin-center'
+const PKG = '@linxin666/dsh-client-ui-skin-center'
+
+/**
+ * Locate the installed skin center.
+ *
+ * This used to be a hard-coded absolute path to one machine's profile, which
+ * meant the script only ever ran for its author. INSTALL.md already states the
+ * rule for this repo -- resolve $DSH_HOME, never hard-code it -- so the search
+ * follows that: an explicit override, then every profile under DSH_HOME, then
+ * the DSH install itself.
+ *
+ * Returns the package root, or exits with the paths it tried.
+ */
+function findSkinCenter() {
+  const tried = []
+
+  if (process.env.SKIN_CENTER_DIR) {
+    const p = process.env.SKIN_CENTER_DIR
+    tried.push(p)
+    if (existsSync(join(p, 'lib', 'index.js'))) return p
+  }
+
+  const dshHome = process.env.DSH_HOME || join(homedir(), '.dsh')
+
+  // Every profile, not just `web`: the skin center can be installed into any
+  // of them, and hard-coding the profile name would reintroduce the same bug.
+  const profilesDir = join(dshHome, 'profiles')
+  if (existsSync(profilesDir)) {
+    for (const name of readdirSync(profilesDir)) {
+      const p = join(profilesDir, name, 'node_modules', PKG)
+      tried.push(p)
+      if (existsSync(join(p, 'lib', 'index.js'))) return p
+    }
+  }
+
+  // The DSH install may carry it directly.
+  for (const base of ['/usr/lib/node_modules/@deepseek-ai/dsh/node_modules',
+                      '/usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules']) {
+    const p = join(base, PKG)
+    tried.push(p)
+    if (existsSync(join(p, 'lib', 'index.js'))) return p
+  }
+
+  console.error('✗ could not find ' + PKG)
+  console.error('  tried:')
+  for (const t of tried) console.error('    ' + t)
+  console.error('')
+  console.error('  install it, or point SKIN_CENTER_DIR at the package directory:')
+  console.error('    SKIN_CENTER_DIR=/path/to/dsh-client-ui-skin-center node scripts/validate-skin.mjs')
+  process.exit(2)
+}
+
+const SC = findSkinCenter()
 const require = createRequire(import.meta.url)
 const mod = require(resolve(SC, 'lib/index.js'))
 

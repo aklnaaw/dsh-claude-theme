@@ -89,13 +89,17 @@ node scripts/validate-skin.mjs claude   # 同上，显式指定皮肤目录
 
 这里打印的是 **JavaScript 字符串长度（字符数）**，不是 UTF-8 字节数。HTTP 接口送出的同一份 CSS 会大几个字节，因为 `—`、`§`、`…` 这类字符一个占 3 字节。两个数字对不上是正常的，别当成 bug。
 
-脚本里 skin-center 的路径是**硬编码的**：
+脚本会**自己找** skin-center，顺序是：
 
-```js
-const SC = '/home/aklnaaw/.dsh/profiles/web/node_modules/@linxin666/dsh-client-ui-skin-center'
+1. `$SKIN_CENTER_DIR`（显式覆盖，直接指向包目录）
+2. `$DSH_HOME/profiles/*/node_modules/@linxin666/dsh-client-ui-skin-center`（遍历所有 profile，不只是 `web`）
+3. DSH 安装目录自带的 `node_modules`
+
+其中 `$DSH_HOME` 默认 `~/.dsh`，与 [INSTALL.md](../INSTALL.md) 的约定一致。找不到就列出所有尝试过的路径并以 **退出码 2** 结束（区别于校验失败的 1）。手动指定：
+
+```bash
+SKIN_CENTER_DIR=/path/to/dsh-client-ui-skin-center node scripts/validate-skin.mjs
 ```
-
-换机器或换 `$DSH_HOME` 时改这一行。找不到模块会直接抛错，不会静默跳过。
 
 ---
 
