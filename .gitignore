@@ -38,3 +38,7 @@ dsh-market.provenance.json
 *.files
 
 # /tmp working dir used by gen-cover.py
+
+# Publishable skin package produced by scripts/export-skin.py. Disposable: it is
+# rebuilt from claude/ on demand and is never read back.
+dist/
