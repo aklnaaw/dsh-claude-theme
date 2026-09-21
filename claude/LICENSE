@@ -1,0 +1,48 @@
+MIT License
+
+Copyright (c) 2026 dsh-claude-theme contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+================================================================================
+VENDORED FONTS — SIL OPEN FONT LICENSE 1.1
+================================================================================
+
+This skin redistributes four font binaries under assets/fonts/. They are
+latin-subset builds of open-source typefaces and are NOT covered by the MIT
+license above. Each is licensed under the SIL Open Font License, Version 1.1,
+which permits redistribution and bundling:
+
+  Newsreader      (normal, italic)  — Copyright 2020 The Newsreader Project Authors
+  Inter           (normal)          — Copyright 2016 The Inter Project Authors
+  JetBrains Mono  (normal)          — Copyright 2020 The JetBrains Mono Project Authors
+
+Full license text: https://openfontlicense.org
+
+================================================================================
+TRADEMARKS
+================================================================================
+
+This is an unofficial fan tribute. "Claude" and "Anthropic" are trademarks of
+Anthropic PBC. This theme reproduces the visual language of the claude.ai
+interface; it is not affiliated with or endorsed by Anthropic.
+
+The typefaces Anthropic uses in that interface (Copernicus and StyreneB) are
+commercially licensed and are NOT included here. This theme substitutes the
+open Newsreader and Inter in their respective roles.

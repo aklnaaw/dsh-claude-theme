@@ -40,6 +40,7 @@ KEEP = [
     "assets/fonts/jetbrains-mono-normal.woff2",
     "README.md",
     "README.zh.md",
+    "LICENSE",
 ]
 
 # Dropped from the working tree and never copied.
