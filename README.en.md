@@ -1,3 +1,8 @@
+| ![](cover/blue-maid.png) | ![](cover/orange-reading.png) |
+| --- | --- |
+
+> ~~**These two look like a pair of star-crossed lovers to me.**~~
+
 # Claude — a DSH Web GUI theme
 
 > ~~**If Anthropic considers this an infringement, contact me and I will take it down.**~~
