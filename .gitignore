@@ -42,3 +42,9 @@ dsh-market.provenance.json
 # Publishable skin package produced by scripts/export-skin.py. Disposable: it is
 # rebuilt from claude/ on demand and is never read back.
 dist/
+
+# Local working notes. Long-running plans and in-progress ideas live here and
+# are pushed only when a batch is deliberately published.
+PLAN.local.md
+NOTES.local.md
+*.local.md
