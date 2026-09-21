@@ -1,4 +1,4 @@
-![](blob/master/cover/blue-maid.png) ！[](blob/master/cover/blue-maid.png)
+![](/blob/master/cover/blue-maid.png) ！[](/blob/master/cover/blue-maid.png)
 > ~~**我看鲸小妹和克小妹也是一对苦命鸳鸯啊。**~~
 
 # Claude — DSH Web GUI 主题
