@@ -53,6 +53,22 @@ This directory contains the skin only. The same repository also ships two
 Neither goes through the skin center; both are ordinary Cordis client plugins.
 Installation and screenshots: <https://github.com/aklnaaw/dsh-claude-theme>.
 
+## Source and copyright
+
+- Stylesheets (`skin.css` / `patches.css`): original work by aklnaaw, released with this repository under MIT.
+- The four woff2 files under `assets/fonts/` are licensed under the SIL Open Font License 1.1, with the
+  copyright notice and full license text included in this directory's `LICENSE`:
+  - `newsreader-normal.woff2`, `newsreader-italic.woff2`: Newsreader, Copyright 2020 The Newsreader Project Authors.
+  - `inter-normal.woff2`: Inter, Copyright 2016 The Inter Project Authors.
+  - `jetbrains-mono-normal.woff2`: JetBrains Mono, Copyright 2020 The JetBrains Mono Project Authors.
+  - All four are latin-subset builds from Google Fonts and contain no CJK; Chinese falls back to system fonts.
+- Preview images `preview/light.jpg` and `preview/dark.jpg`: rendered by this repository's
+  `scripts/capture-previews` against the DSH official facade snapshot; no third-party artwork is used.
+- This skin reproduces the visual language of the claude.ai interface. "Claude" and "Anthropic" are
+  trademarks of Anthropic PBC; this skin is a stylistic homage and is not affiliated with or endorsed by
+  Anthropic. The typefaces Anthropic actually uses (Copernicus and StyreneB) are commercially licensed and
+  are not included; open Newsreader and Inter substitute for them here.
+
 ## Known limitations
 
 - Presentation only: it changes browser styles and never touches model requests.

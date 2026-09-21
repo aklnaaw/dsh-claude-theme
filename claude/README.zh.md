@@ -46,6 +46,17 @@ node scripts/capture-previews claude          # 重拍 preview/{light,dark}.jpg
 两者都不经皮肤中心，是普通的 Cordis 客户端插件，安装方式与截图见
 <https://github.com/aklnaaw/dsh-claude-theme>。
 
+## 来源与版权
+
+- 样式代码（`skin.css` / `patches.css`）：aklnaaw 原创，随本仓库以 MIT 发布。
+- 内置字体 `assets/fonts/` 下四份 woff2，均为 SIL Open Font License 1.1，随附版权声明与许可全文（见目录内 `LICENSE`）：
+  - `newsreader-normal.woff2`、`newsreader-italic.woff2`：Newsreader，Copyright 2020 The Newsreader Project Authors。
+  - `inter-normal.woff2`：Inter，Copyright 2016 The Inter Project Authors。
+  - `jetbrains-mono-normal.woff2`：JetBrains Mono，Copyright 2020 The JetBrains Mono Project Authors。
+  - 四者均为 Google Fonts 的 latin 子集构建，不含中文；中文走系统字体回退。
+- 预览图 `preview/light.jpg`、`preview/dark.jpg`：由本仓库的 `scripts/capture-previews` 渲染，含 DSH 官方门面快照，不含第三方美术素材。
+- 本皮肤复刻 claude.ai 应用界面的观感。「Claude」与「Anthropic」是 Anthropic PBC 的商标；本皮肤为风格致敬，与 Anthropic 无隶属或背书关系。Anthropic 实际使用的 Copernicus 与 StyreneB 为商业授权字体，未包含在内，此处以开源的 Newsreader 与 Inter 替代。
+
 ## 已知限制
 
 - 纯呈现层：只改浏览器样式，不触及模型请求。
