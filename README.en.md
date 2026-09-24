@@ -67,6 +67,11 @@ Screenshots of the real running UI at 1440×900. Sampled to verify: the light ca
 - **All 278 `--dsw-*` tokens declared explicitly**, covering both light and dark (97 alias tokens carry the same name with different values per mode). Nothing is left to the loader's token auto-derivation (see [Limitations](#limitations)).
 - **Newsreader serif body** — markdown prose, headings and quotes use the serif; UI chrome (buttons, menus, labels) uses Inter; code uses JetBrains Mono.
 - **Warm-black dark mode** — `#181715`, never pure black.
+- **Clawd pixel crab** — the official Claude Code mascot, drawn in **pure CSS `box-shadow`**: no image, no request, no asset weight, and it follows the theme colour throughout. Two layers:
+  - **Skin layer** (no plugin needed): the resident crab on the composer edge (not clickable, a pseudo-element) plus the pixel sparkle beside the greeting.
+  - **Plugin layer** (`crab-plugin/`): swaps the same crab for a real, **interactive** element — its eyes follow your pointer, it blinks when idle, it dozes off and curls up asleep when ignored, and a poke shows one of six reactions before it says something that fits the moment.
+  - The two are **mutually exclusive and complementary**: the skin uses `body:has(.dcc-crab)` to detect whether the plugin's crab is really in the DOM, standing down when it is and taking over when it is not. So a failure on either side leaves **exactly one crab** — never two, never none.
+  - The plugin **does not register through a Cordis slot; it mounts onto the DOM directly** (`[data-composer-card]`). Why: see [Limitations](#limitations).
 - **Fonts vendored** — 4 woff2 files, 364 KB total, self-hosted inside the skin directory. No external requests.
 - **Radius ladder and pill composer** — `patches.css` reworks radii, the composer, cards and scrollbars via L3 free selectors.
 - **Third-party plugin blending** — non-official plugin chrome is neutralized to follow Claude's card language instead of its own palette.
