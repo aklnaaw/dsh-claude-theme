@@ -157,6 +157,24 @@ bash scripts/capture-preview.sh <已认证的-DSH-URL> [输出目录]
 
 无认证依赖的预览渲染路径，产出 `claude/preview/light.jpg` 与 `dark.jpg`，并能在 DOM 里回读计算样式用于断言（`#PROBE` 元素）。
 
+## check-settings-controls.sh
+
+小插件的**设置页回归测试**。
+
+```bash
+scripts/check-settings-controls.sh
+```
+
+它在无头 Chrome 里挂载每个插件**真实的**设置组件，操作它的控件，然后断言组件操作后**仍然挂载**。
+
+防的是这一类 bug：插件的订阅者集合里混着 React 的 state setter，如果通知时不带参数，setter 就把 state 存成 `undefined`，下一次渲染读它上面的属性会抛错，React 卸载整棵树——**用户刚碰的那个控件就不动了，看起来像卡死**。
+
+这个 bug 在 Clawd 插件和字体切换器里**各出现了一次**，所以有这个脚本。
+
+两个插件都不打包 React（由宿主提供），所以脚本临时从 unpkg 拉 UMD 构建。需要 `google-chrome-stable` 在 PATH 上，或用 `CHROME=` 指定。
+
+退出码 0 = 全部通过，1 = 有控件操作后挂掉，2 = 环境缺 Chrome 或拉不到 React。
+
 ---
 
 ## 典型改动流程

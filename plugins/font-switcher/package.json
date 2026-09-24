@@ -1,0 +1,28 @@
+{
+  "name": "dsh-font-switcher",
+  "version": "0.1.0",
+  "description": "Pick the serif, sans and mono typefaces used by the Claude skin, from font files dropped into a folder.",
+  "license": "MIT",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-renderer"
+      ]
+    }
+  },
+  "type": "module"
+}
