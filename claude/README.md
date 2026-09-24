@@ -40,8 +40,8 @@ node scripts/capture-previews claude          # re-shoot preview/{light,dark}.jp
 
 ## The full version lives in the repository
 
-This directory contains the skin only. The same repository also ships two
-**optional** plugins:
+This directory contains the skin only. The project's home repository also ships
+two **optional** plugins:
 
 - **The Claude plugin** replaces the sidebar whale mark and brand wordmark with
   the Claude starburst and wordmark, adds a browser tab icon, and provides an

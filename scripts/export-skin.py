@@ -57,8 +57,21 @@ REPO = "https://github.com/aklnaaw/dsh-claude-theme"
 # the project has to live in prose. Kept to two sentences: the market listing is
 # a card, and the plugins are an extra, not the headline.
 DESCRIPTION_SUFFIX = (
-    "皮肤本身是完整的亮暗双主题；仓库另有两个可选插件（Claude 品牌替换、"
+    "皮肤本身是完整的亮暗双主题；项目主仓库另有两个可选插件（Claude 品牌替换、"
     "可交互的 Clawd 像素蟹），需要时见 " + REPO
+)
+
+# Provenance fields the collection's skins carry on the manifest (whale-maid,
+# maid-atelier and orca-link all declare them). The skin center shows them in the
+# shop, so they belong in the export rather than in a manual patch applied after
+# it -- a fresh export must reproduce the submitted directory byte for byte.
+LICENSE_FIELD = "MIT (skin stylesheets); SIL OFL 1.1 (bundled fonts)"
+LICENSE_URL = (
+    "https://github.com/zhu1090093659/dsh-skins/blob/main/skins/claude/LICENSE"
+)
+ATTRIBUTION = (
+    "aklnaaw — 样式原创（MIT）；内置 Newsreader / Inter / JetBrains Mono 为 SIL OFL 1.1，"
+    "许可全文见目录内 LICENSE。致敬 claude.ai 视觉语言，与 Anthropic 无隶属关系。"
 )
 
 
@@ -83,10 +96,21 @@ def main() -> int:
         return 1
 
     # Manifest: same skin, with the repository pointer appended to description.
-    manifest = json.loads((SRC / "skin.json").read_text(encoding="utf-8"))
-    base = manifest.get("description", "").rstrip()
+    raw = json.loads((SRC / "skin.json").read_text(encoding="utf-8"))
+    base = raw.get("description", "").rstrip()
     if not base.endswith(("。", ".")):
         base += "。"
+
+    # Rebuild in the submitted field order: the provenance fields sit right
+    # after `author`, matching the collection's other skins.
+    manifest = {}
+    for key, value in raw.items():
+        manifest[key] = value
+        if key == "author":
+            manifest["license"] = LICENSE_FIELD
+            manifest["licenseUrl"] = LICENSE_URL
+            manifest["sourceUrl"] = REPO
+            manifest["attribution"] = ATTRIBUTION
     manifest["description"] = base + DESCRIPTION_SUFFIX
     (out / "skin.json").write_text(
         json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
