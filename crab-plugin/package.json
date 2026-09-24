@@ -1,7 +1,7 @@
 {
   "name": "dsh-claude-crab",
-  "version": "1.0.0",
-  "description": "A clickable pixel Clawd crab for the DeepSeek Harness Web GUI: pointer-tracking eyes, idle blinking, and a spoken line when poked.",
+  "version": "1.1.0",
+  "description": "A clickable pixel Clawd on the composer edge: follows the pointer, blinks, dozes off when ignored, and answers according to what the page is doing.",
   "type": "module",
   "main": "lib/index.js",
   "exports": {
