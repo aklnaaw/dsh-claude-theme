@@ -32,11 +32,13 @@ alongside the other themes in the skin center package.
 
 ## Preview
 
-```sh
-pnpm market:build                            # refresh market artifacts (market/dist)
-open market/dist/preview.html?skin=claude&theme=light
-node scripts/capture-previews claude          # re-shoot preview/{light,dark}.jpg
-```
+`preview/light.jpg` and `preview/dark.jpg` are 1440x900 renders of the official
+shell facade with this skin's stylesheet injected — the same pipeline the rest of
+the catalog uses, so the sidebar and composer geometry match the other skins.
+
+The renderer is not part of this repository; it lives in the `dsh-web` checkout
+as `scripts/capture-previews`, which shoots into that checkout's own skin
+directory. The two files here are the result, copied over.
 
 ## The full version lives in the repository
 
@@ -62,7 +64,7 @@ Installation and screenshots: <https://github.com/aklnaaw/dsh-claude-theme>.
   - `inter-normal.woff2`: Inter, Copyright 2016 The Inter Project Authors.
   - `jetbrains-mono-normal.woff2`: JetBrains Mono, Copyright 2020 The JetBrains Mono Project Authors.
   - All four are latin-subset builds from Google Fonts and contain no CJK; Chinese falls back to system fonts.
-- Preview images `preview/light.jpg` and `preview/dark.jpg`: rendered by this repository's
+- Preview images `preview/light.jpg` and `preview/dark.jpg`: rendered by the `dsh-web` build's
   `scripts/capture-previews` against the DSH official facade snapshot; no third-party artwork is used.
 - This skin reproduces the visual language of the claude.ai interface. "Claude" and "Anthropic" are
   trademarks of Anthropic PBC; this skin is a stylistic homage and is not affiliated with or endorsed by
