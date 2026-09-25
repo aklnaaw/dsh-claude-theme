@@ -36,14 +36,11 @@ alongside the other themes in the skin center package.
 shell facade with this skin's stylesheet injected — the same pipeline the rest of
 the catalog uses, so the sidebar and composer geometry match the other skins.
 
-The renderer is not part of this repository; it lives in the `dsh-web` checkout
-as `scripts/capture-previews`, which shoots into that checkout's own skin
-directory. The two files here are the result, copied over.
+## The full version lives in the project repository
 
-## The full version lives in the repository
-
-This directory contains the skin only. The project's home repository also ships
-two **optional** plugins:
+This directory contains the skin only. The full version — the skin source plus
+two **optional** plugins — lives at
+<https://github.com/aklnaaw/dsh-claude-theme>:
 
 - **The Claude plugin** replaces the sidebar whale mark and brand wordmark with
   the Claude starburst and wordmark, adds a browser tab icon, and provides an
@@ -52,8 +49,8 @@ two **optional** plugins:
   its eyes follow the pointer, it blinks when idle, and poking it makes it jump
   and say something.
 
-Neither goes through the skin center; both are ordinary Cordis client plugins.
-Installation and screenshots: <https://github.com/aklnaaw/dsh-claude-theme>.
+Neither goes through the skin center; both are ordinary Cordis client plugins,
+with installation notes and screenshots in that repository's README.
 
 ## Source and copyright
 
@@ -64,8 +61,8 @@ Installation and screenshots: <https://github.com/aklnaaw/dsh-claude-theme>.
   - `inter-normal.woff2`: Inter, Copyright 2016 The Inter Project Authors.
   - `jetbrains-mono-normal.woff2`: JetBrains Mono, Copyright 2020 The JetBrains Mono Project Authors.
   - All four are latin-subset builds from Google Fonts and contain no CJK; Chinese falls back to system fonts.
-- Preview images `preview/light.jpg` and `preview/dark.jpg`: rendered by the `dsh-web` build's
-  `scripts/capture-previews` against the DSH official facade snapshot; no third-party artwork is used.
+- Preview images `preview/light.jpg` and `preview/dark.jpg`: renders of the DSH official shell
+  facade snapshot; no third-party artwork is used.
 - This skin reproduces the visual language of the claude.ai interface. "Claude" and "Anthropic" are
   trademarks of Anthropic PBC; this skin is a stylistic homage and is not affiliated with or endorsed by
   Anthropic. The typefaces Anthropic actually uses (Copernicus and StyreneB) are commercially licensed and

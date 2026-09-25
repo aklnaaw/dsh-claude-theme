@@ -32,20 +32,17 @@
 快照 + 注入本皮肤样式表。与目录内其余皮肤同一套渲染管线，因此侧栏与输入区的
 几何尺寸与它们一致。
 
-渲染器不属于本仓库：它位于 `dsh-web` 单体仓的 `scripts/capture-previews`，
-输出写到那一侧的皮肤目录，需要重拍时把生成的两张图拷回这里。
+## 完整版本在项目主仓库
 
-## 完整版本在仓库里
-
-本目录只包含皮肤。项目主仓库另提供两个**可选**插件：
+本目录只包含皮肤。完整版本（皮肤源文件 + 两个**可选**插件）位于
+<https://github.com/aklnaaw/dsh-claude-theme>：
 
 - **Claude 插件**：把侧栏的鲸鱼标志与品牌文案换成 Claude 星芒与字标，加一个
   浏览器标签页图标，并在设置里提供一个可改的显示名与头像。
 - **Clawd 插件**：输入框上沿一只可点的像素蟹，眼睛跟随鼠标、会眨眼、戳一下
   会跳起来说话。
 
-两者都不经皮肤中心，是普通的 Cordis 客户端插件，安装方式与截图见
-<https://github.com/aklnaaw/dsh-claude-theme>。
+两者都不经皮肤中心，是普通的 Cordis 客户端插件，安装方式与截图见该仓库的 README。
 
 ## 来源与版权
 
@@ -55,7 +52,7 @@
   - `inter-normal.woff2`：Inter，Copyright 2016 The Inter Project Authors。
   - `jetbrains-mono-normal.woff2`：JetBrains Mono，Copyright 2020 The JetBrains Mono Project Authors。
   - 四者均为 Google Fonts 的 latin 子集构建，不含中文；中文走系统字体回退。
-- 预览图 `preview/light.jpg`、`preview/dark.jpg`：由 `dsh-web` 构建的 `scripts/capture-previews` 渲染，含 DSH 官方门面快照，不含第三方美术素材。
+- 预览图 `preview/light.jpg`、`preview/dark.jpg`：基于 DSH 官方外壳门面快照渲染，不含第三方美术素材。
 - 本皮肤复刻 claude.ai 应用界面的观感。「Claude」与「Anthropic」是 Anthropic PBC 的商标；本皮肤为风格致敬，与 Anthropic 无隶属或背书关系。Anthropic 实际使用的 Copernicus 与 StyreneB 为商业授权字体，未包含在内，此处以开源的 Newsreader 与 Inter 替代。
 
 ## 已知限制
