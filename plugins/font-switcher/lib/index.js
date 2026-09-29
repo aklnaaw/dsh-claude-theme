@@ -103,13 +103,32 @@ function dshHome() {
   return process.env.DSH_HOME || join(homedir(), ".dsh");
 }
 
-/** Which skin to scan. Read from the skin center, so no client round-trip is needed. */
+/**
+ * Which skin to scan.
+ *
+ * Read from a file rather than over RPC so no client round-trip is needed
+ * before the settings page can render.
+ *
+ * Two files are consulted, in order:
+ *
+ *   1. `claude-skin.json` — written by dsh-claude-skin, this project's own
+ *      skin loader. Preferred, because that plugin is the one that actually
+ *      decides which skin stylesheet the page gets, and a font folder must
+ *      follow the skin that is really on screen.
+ *   2. `skin-center-active.json` — written by the third-party skin center.
+ *      Kept as a fallback so a profile still running the skin center keeps
+ *      working, and so an existing setup does not have to be reconfigured.
+ *
+ * Neither file means "claude", which is the skin this plugin was written for.
+ */
 function activeSkin() {
-  try {
-    const raw = JSON.parse(readFileSync(join(dshHome(), "skin-center-active.json"), "utf8"));
-    if (raw && typeof raw.active === "string" && raw.active) return raw.active;
-  } catch {
-    /* absent or malformed */
+  for (const file of ["claude-skin.json", "skin-center-active.json"]) {
+    try {
+      const raw = JSON.parse(readFileSync(join(dshHome(), file), "utf8"));
+      if (raw && typeof raw.active === "string" && raw.active) return raw.active;
+    } catch {
+      /* absent or malformed; try the next source */
+    }
   }
   return "claude";
 }

@@ -200,14 +200,35 @@ window.__ModuleLoader__.load({
 					localStorage.setItem(STORE_KEY, JSON.stringify(next));
 				}
 			} catch (e) { /* storage full or blocked; the UI still updates */ }
-			subscribers.forEach(function (fn) { try { fn(); } catch (e) {} });
+			/* One notification path for both local and cross-plugin listeners:
+			 * subscribe() registers each subscriber on the window event as well
+			 * as in the set, so dispatching here reaches everyone exactly once.
+			 * The display name is now edited from two places -- this plugin's
+			 * sidebar popover and the skin plugin's settings page -- and they
+			 * cannot share a module scope, so the record is the shared state
+			 * and this event is the shared notification. Without it, a rename
+			 * in one place would leave the other stale until a reload. */
+			notify();
 		}
 
 		var subscribers = new Set();
+		var PREFS_EVENT = "dsh-claude-brand:prefs";
 
+		function notify() {
+			try {
+				window.dispatchEvent(new CustomEvent(PREFS_EVENT));
+			} catch (e) { /* no window: nothing to notify */ }
+		}
+
+		/* Listen to the cross-plugin signal as well as this module's own set,
+		 * so a rename made anywhere reaches every displayed surface. */
 		function subscribe(fn) {
 			subscribers.add(fn);
-			return function () { subscribers.delete(fn); };
+			window.addEventListener(PREFS_EVENT, fn);
+			return function () {
+				subscribers.delete(fn);
+				window.removeEventListener(PREFS_EVENT, fn);
+			};
 		}
 
 		/* Re-read on every notification so several mounted surfaces agree. */
@@ -886,22 +907,12 @@ window.__ModuleLoader__.load({
 				);
 			});
 
-			/* A settings page of its own, alongside General / Models / Plugins.
-			 * `settings.section` is an additive list owned by the settings
-			 * shell, so registering here needs no priority and shadows nothing.
-			 * Labelled 名字, not Claude: the page holds a display name, and an
-			 * entry reading "Claude" inside an already Claude-themed UI says
-			 * nothing about where to change it. */
-			slots.inject("settings.section", function () {
-				try {
-					return slots.register(
-						{ name: "settings.section", id: "claude", order: 50, label: "名字" },
-						NameSection,
-					);
-				} catch (e) {
-					return function () {};
-				}
-			});
+			/* The display name and avatar used to have a settings page of their
+			 * own here. They now live on the skin plugin's Claude page, because
+			 * they describe that skin's chrome rather than the brand mark this
+			 * plugin contributes -- and two pages editing one record would be
+			 * two places to look for one setting. The sidebar foot popover
+			 * below remains the shortcut. */
 
 			/* Avatar + name at the sidebar foot, in the strip the shell renders
 			 * just above Settings. Also additive. */

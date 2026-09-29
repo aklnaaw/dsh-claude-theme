@@ -1,7 +1,7 @@
 {
   "name": "dsh-claude-brand",
   "version": "1.0.0",
-  "description": "Rebrands the DSH Web GUI as Claude: the Anthropic starburst mark in the sidebar and hero, a text wordmark, and the document title.",
+  "description": "把 DSH Web GUI 换成 Claude 品牌：侧栏与首屏的 Anthropic 星芒标记、文字字标、浏览器标题与图标，另附名字/副标题/头像编辑。",
   "type": "module",
   "main": "lib/index.js",
   "exports": {

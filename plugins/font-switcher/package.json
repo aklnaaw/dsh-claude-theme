@@ -1,7 +1,7 @@
 {
   "name": "dsh-font-switcher",
   "version": "0.1.0",
-  "description": "Pick the serif, sans and mono typefaces used by the Claude skin, from font files dropped into a folder.",
+  "description": "换掉 Claude 皮肤用的三组字体（正文衬线、界面无衬线、代码等宽），字体文件放进指定文件夹即可。",
   "license": "MIT",
   "main": "lib/index.js",
   "exports": {
@@ -11,7 +11,8 @@
   },
   "files": [
     "lib",
-    "cordis.patch.yml"
+    "cordis.patch.yml",
+    "README.md"
   ],
   "dsh": {
     "bundle": {
