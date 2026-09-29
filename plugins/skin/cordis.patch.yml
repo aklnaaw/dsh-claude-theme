@@ -1,0 +1,5 @@
+# dsh-claude-skin bundle patch: inserts its row into the web roster.
+# Install the bundle with `dsh plugin --profile <name> add <path-or-git-url>`.
+- insert:
+    - id: claude-skin
+      name: dsh-claude-skin

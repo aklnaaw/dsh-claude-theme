@@ -1,0 +1,39 @@
+{
+  "name": "dsh-claude-skin",
+  "version": "1.0.0",
+  "description": "不装皮肤中心也能用 Claude 皮肤：把皮肤样式表按作用域契约注入页面，并用自己的路由送出皮肤自带的字体与图片。",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "license": "MIT",
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-renderer"
+      ]
+    }
+  },
+  "author": "aklnaaw",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aklnaaw/dsh-claude-theme.git",
+    "directory": "plugins/skin"
+  },
+  "homepage": "https://github.com/aklnaaw/dsh-claude-theme#readme",
+  "bugs": {
+    "url": "https://github.com/aklnaaw/dsh-claude-theme/issues"
+  }
+}
