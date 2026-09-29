@@ -8,7 +8,7 @@
 | `validate-skin.mjs` | 用真实的 skin-center 清洗器 + 清单校验器验证皮肤 | 每次改动 `claude/` 之后，提交前必跑 |
 | `claude/assets/fonts/build-fonts.sh` | 重新下载 4 个 woff2 字体 | 换字体、加字重、或字体文件损坏时 |
 | `capture-preview.sh` | 用 headless Chrome 截图做预览图 | 需要已认证 URL，只截亮色 |
-| `render-harness/` | 无认证依赖的预览渲染 + 计算样式回读 | 实际产出 `claude/preview/` 的就是它 |
+| `render-harness/` | 无认证依赖的预览渲染 + 计算样式回读 | 批量重截或回归对比时用；当前预览图是真机截图（见下） |
 
 所有路径都从脚本自身位置推导，因此**必须在任何目录下都能跑**；下面的命令假设当前目录是仓库根。
 
@@ -147,15 +147,21 @@ bash scripts/capture-preview.sh <已认证的-DSH-URL> [输出目录]
 
 已知限制：**只截亮色**，而 `skin.json` 声明了亮暗两张；深色那张要另截一次。
 
-### 实际用的是 render-harness
+### 当前 `claude/preview/` 里是什么
 
-`claude/preview/` 里那两张图**不是**这个脚本产出的，而是 `scripts/render-harness/` 产出的。原因：这个 Web 服务器的认证 cookie 用**每次启动生成的密钥**签名（见 `dsh-client-connection/lib/index.js` 的 `isAuthenticated`），无头浏览器拿不到，除非重启服务器重新拿 URL——为了截图去动用户正在跑的会话不值得。
+现在是**真机截图**（1920×1080，亮暗各一张，人手在真机上截的）——不是这个脚本
+也不是 render-harness 产出的。原因：这个 Web 服务器的认证 cookie 用**每次启动
+生成的密钥**签名（见 `dsh-client-connection/lib/index.js` 的 `isAuthenticated`），
+无头浏览器拿不到认证，除非重启服务器重新拿 URL——为了截图去动用户正在跑的会话
+不值得，不如直接手截。
 
-实验台改走另一条路：直接拉取皮肤中心**真实吐出的** `skin.css` 与 `patches.css`，铺上官方默认令牌值，再渲染。因此测出来的计算样式和真实界面一致。详见 `scripts/render-harness/README.md`。
+这两个自动化路径仍然保留，供想批量重截或做回归对比时用；render-harness 走的路是
+拉取皮肤中心**真实吐出的** `skin.css` 与 `patches.css`、铺上官方默认令牌值再渲染，
+测出来的计算样式和真实界面一致。详见 `scripts/render-harness/README.md`。
 
 ## render-harness/
 
-无认证依赖的预览渲染路径，产出 `claude/preview/light.jpg` 与 `dark.jpg`，并能在 DOM 里回读计算样式用于断言（`#PROBE` 元素）。
+无认证依赖的预览渲染路径，可产出 `claude/preview/light.jpg` 与 `dark.jpg`，并能在 DOM 里回读计算样式用于断言（`#PROBE` 元素）。当前仓库里的预览图不是它产出的（见上）。
 
 ## check-settings-controls.sh
 
