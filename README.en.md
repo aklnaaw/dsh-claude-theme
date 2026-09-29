@@ -7,47 +7,36 @@
 
 > ~~**If Anthropic considers this an infringement, contact me and I will take it down.**~~
 
-Rebuilds the DSH Web GUI in the visual language of the claude.ai app: warm cream canvas, serif reading text, coral accent.
+Makes the DSH Web GUI look like the claude.ai app: warm cream canvas, serif reading text, coral accent.
 
-This repo ships **three artifacts**. Two of them are plugins that are **fully
-independent of the skin** and can be installed on their own:
+The repo holds five things. Each installs on its own, and none of them gets in another's way:
 
-| Artifact | Path | Needs the skin center? | Install |
-| --- | --- | --- | --- |
-| Skin | `claude/` | **Yes** | Copy to `$DSH_HOME/skins/claude/`, select it in Settings |
-| Claude plugin | `brand-plugin/` | **No** | `dsh plugin --profile web add link:<abs path>` + restart |
-| Clawd plugin | `crab-plugin/` | **No** | `dsh plugin --profile web add link:<abs path>` + restart |
+| | What it is |
+| --- | --- |
+| **Skin** `claude/` | Colours, fonts, rounded corners. The skin itself. |
+| **Skin plugin** `plugins/skin/` | Lets you use the skin without the skin center. |
+| **Claude plugin** `brand-plugin/` | The starburst mark and wordmark in the sidebar, the home-page greeting, the browser title and icon. |
+| **Clawd plugin** `crab-plugin/` | The pokeable pixel crab on the composer edge. |
+| **Font-switcher plugin** `plugins/font-switcher/` | Swaps out the three font groups the skin uses. |
 
-### How they depend on each other
+### The skin installs two ways
 
-**The skin is a pure asset directory** with no executable code. It is read and
-rendered by the third-party skin center (`@linxin666/dsh-client-ui-skin-center`)
-and **must** go through it — that is the only entry point for a skin.
+**One: through the skin center.** If you already run `@linxin666/dsh-client-ui-skin-center`, search for Claude in its marketplace and install it — no manual copying. Then pick it in Settings.
 
-**Neither plugin goes through the skin center.** They are ordinary Cordis client
-plugins loaded by DSH's own plugin system, and they depend only on official
-things:
+**Two: through the standalone plugin.** If you would rather not install a whole skin center for one skin, install `plugins/skin/`. It **installs the skin for you**: on first load it copies the repository's `claude/` into `$DSH_HOME/skins/claude`, so after a restart you just pick Claude in **Settings → Claude-X**. It does only the skin's job — reads the directory, puts the stylesheet on the page, hands over the fonts and images — without the background images, marketplace or wallpaper features.
 
-| Plugin | Cordis service | CSS variables |
-| --- | --- | --- |
-| `brand-plugin` | `slots` | `--dsw-*` (from the official theme service) |
-| `crab-plugin` | `timer` | `--dsw-*` plus its own `--dcc-*` |
+**Don't install both** — each would send the same stylesheet to the page.
 
-**The key point:** neither plugin references a single skin variable (skin
-variables use the `--cl-*` prefix; the reference count is zero). The Clawd plugin
-embeds its own pixel frame data instead of reading it from the skin.
+### Between them
 
-So the plugins can be installed without the skin — the crab and the rebranding
-work fine, they simply take their colours from whatever theme is active.
-Installing the skin without the plugins works too; it ships its own small pixel
-sparkle beside the greeting.
+The four plugins each mind their own business: separate settings pages (skin → **Claude-X**, crab → **Clawd**, fonts → **Fonts**) and separate saved data. Just two small overlaps:
 
-**Why rebranding is not part of the skin:** a locally authored skin cannot run
-`hooks.mjs` (the loader only admits official-market origins — see
-[Limitations](#limitations)), and swapping the brand mark means replacing slot
-occupants, which only a plugin can do.
+- The name, caption and avatar editor sits on the skin plugin's Claude-X page — it's part of that skin's look. The data itself belongs to the brand plugin, so with only the brand plugin installed you rename through the row at the foot of the sidebar.
+- The font-switcher follows the current skin. No skin, nothing to swap.
 
-**Status:** all three artifacts are verified working on this machine — the skin validates with zero warnings, and both plugins are linked into the web profile and confirmed through the real page DOM (sidebar shows the Claude starburst SVG and the text wordmark; an interactive Clawd sits on the composer edge).
+Plugins without the skin still look right, just in the stock theme colours. The skin without the plugins means no starburst and no crab, but the colours, fonts and the pixel sparkle by the greeting are all there.
+
+**Why the brand swap isn't part of the skin**: skins can't run the official hooks (see [Limitations](#limitations)), and swapping a logo is plugin work.
 
 ---
 
@@ -57,27 +46,20 @@ occupants, which only a plugin can do.
 
 ![](claude/preview/dark.jpg)
 
-Screenshots of the real running UI at 1440×900. Sampled to verify: the light canvas is `rgb(250,249,245)` = `#faf9f5` and the dark canvas is `rgb(24,23,21)` = `#181715`, both exact design values.
+Screenshots of the real running UI. The light canvas is warm cream, the dark one Claude's warm black — both matching the design values.
 
 ---
 
 ## Features
 
-- **Warm cream canvas** — `#faf9f5` replaces the stock cool gray-white; elevation steps down through `#f5f0e8` / `#efe9de` / `#e8e0d2`.
-- **All 278 `--dsw-*` tokens declared explicitly**, covering both light and dark (97 alias tokens carry the same name with different values per mode). Nothing is left to the loader's token auto-derivation (see [Limitations](#limitations)).
-- **Newsreader serif body** — markdown prose, headings and quotes use the serif; UI chrome (buttons, menus, labels) uses Inter; code uses JetBrains Mono.
-- **Warm-black dark mode** — `#181715`, never pure black.
-- **Clawd pixel crab** — the official Claude Code mascot, drawn in **pure CSS `box-shadow`**: no image, no request, no asset weight, and it follows the theme colour throughout. Two layers:
-  - **Skin layer** (no plugin needed): the resident crab on the composer edge (not clickable, a pseudo-element) plus the pixel sparkle beside the greeting.
-  - **Plugin layer** (`crab-plugin/`): swaps the same crab for a real, **interactive** element — its eyes follow your pointer, it blinks when idle, it dozes off and curls up asleep when ignored, and a poke shows one of six reactions before it says something that fits the moment.
-  - The two are **mutually exclusive and complementary**: the skin uses `body:has(.dcc-crab)` to detect whether the plugin's crab is really in the DOM, standing down when it is and taking over when it is not. So a failure on either side leaves **exactly one crab** — never two, never none.
-  - The plugin **does not register through a Cordis slot; it mounts onto the DOM directly** (`[data-composer-card]`). Why: see [Limitations](#limitations).
-- **Fonts vendored** — 4 woff2 files, 364 KB total, self-hosted inside the skin directory. No external requests.
-- **Radius ladder and pill composer** — `patches.css` reworks radii, the composer, cards and scrollbars via L3 free selectors.
-- **Third-party plugin blending** — non-official plugin chrome is neutralized to follow Claude's card language instead of its own palette.
-- **Editable name and avatar** — a row at the sidebar foot, above Settings, showing avatar, name and a caption. Clicking it opens an editor in place (name, caption, avatar). A fresh install ships `moon` and a bundled avatar; values live only in this browser and are never uploaded. **Defaults apply only when no record exists** — deliberately clearing a field does not bring the default back.
-- **Rotating greeting** — 24 lines, with index 0 always the time-of-day greeting (早上好 / 中午好 / 晚上好). The line changes on each page load and carries the name you set.
-- **Live switching** — the skin center swaps atomically in the page. No reload, no restart.
+- **Warm cream canvas** — no more stock cool gray-white. Light is warm cream; dark is Claude's warm black, not pure black.
+- **Serif reading text** — prose, headings and quotes in Newsreader; buttons and menus in Inter; code in JetBrains Mono. Chinese falls back to your system fonts.
+- **Clawd, the pixel crab** — Claude Code's crab, drawn in pure CSS, no images. It lives in the plugin: eyes following your pointer, blinking when idle, dozing off when ignored, and a poke gets you a line that fits the moment. The skin just reserves room for it.
+- **Fonts included** — four font files inside the skin directory; nothing is fetched from outside.
+- **Third-party plugins blend in** — other plugins' UI gets a neutral coat so it follows Claude's card style instead of clashing.
+- **Your name and avatar** — a row at the foot of the sidebar; click to edit in place. A fresh install shows `moon` and a built-in avatar, stored only in this browser.
+- **Rotating greeting** — 24 lines, one per page load, the first always a time-of-day greeting, carrying your name.
+- **Live switching** — through the skin center, swapping skins needs no reload; through the standalone plugin, reload once after switching.
 
 ---
 
@@ -85,55 +67,41 @@ Screenshots of the real running UI at 1440×900. Sampled to verify: the light ca
 
 ```
 dsh-claude-theme/
-├── claude/                          # the skin (pure assets)
-│   ├── skin.json                    # manifest v2: id=claude, accent=#d97757, contributes
-│   ├── skin.css                     # 278 --dsw-* tokens (light + dark) + @font-face
-│   ├── patches.css                  # L3 free-selector patches
-│   ├── assets/fonts/                # self-hosted fonts (latin subsets, 364 KB total)
-│   │   ├── newsreader-normal.woff2  #   variable 200–800
-│   │   ├── newsreader-italic.woff2  #   variable 200–800
-│   │   ├── inter-normal.woff2       #   variable 100–900
-│   │   ├── jetbrains-mono-normal.woff2  # variable 100–800
-│   │   ├── fonts.generated.css      # build-fonts.sh output, inlined by gen-skin-css.py
-│   │   └── build-fonts.sh           # re-downloads the woff2 files
-│   ├── preview/                     # preview images (1440x900, light + dark)
-│   │   ├── light.jpg
-│   │   └── dark.jpg
-│   ├── crab.generated.css           # pixel sparkle beside the greeting (gen-crab.py; do not edit)
-│   └── patches.base.css             # the hand-written L3 layer (input to patches.css)
-├── crab-plugin/                     # Clawd plugin, dsh-claude-crab (self-contained)
-│   ├── package.json                 #   declares dsh.bundle.patch and dsh.client.platform=web
-│   ├── cordis.patch.yml             #   inserts the dsh-claude-crab row into the web roster
-│   ├── README.md                    #   the plugin's own notes
-│   └── lib/
-│       ├── index.js                 #   host half: deliberately empty
-│       └── client.js                #   browser half: embedded pixel frames + DOM mounting
-├── pet/                             # Clawd for the pet system (spritesheet + manifest)
-├── brand-plugin/                    # Claude plugin, dsh-claude-brand
-│   ├── package.json                 #   declares dsh.bundle.patch and dsh.client.platform=web
-│   ├── cordis.patch.yml             #   inserts the dsh-claude-brand row into the web roster
-│   ├── assets/default-avatar.webp   #   the shipped default avatar (source for the inlined data URL)
-│   └── lib/
-│       ├── index.js                 #   host half: deliberately empty (no host state, no RPC)
-│       └── client.js                #   browser half: slots, text rewriting, name/avatar editor
-├── cover/                           # cover art, both palettes
-│   ├── cover-light.png              #   1920x1080, 16:9, for video
-│   ├── cover-dark.png
-│   ├── social-light.png             #   1280x640, 2:1, for the GitHub repo card
-│   └── social-dark.png
-├── scripts/
-│   ├── gen-skin-css.py              # regenerate claude/skin.css from the palette
-│   ├── gen-crab.py                  # generate the greeting sparkle and compose patches.css
-│   ├── gen-pet.py                   # generate the pet spritesheet and manifest
-│   ├── gen-cover.py                 # render the cover art at both aspects
-│   ├── gen-brand-avatar.py          # splice the default avatar into the Claude plugin
-│   ├── cover-assets.json            # extracted brand geometry used by gen-cover.py
-│   └── validate-skin.mjs            # validate the skin with the real skin-center sanitizer
+├── claude/                          # the skin itself
+│   ├── skin.json                    #   what the skin is (name, author, palette)
+│   ├── skin.css                     #   all the colours and fonts
+│   ├── patches.css                  #   the fine-tuning (radii, composer, cards, scrollbars)
+│   ├── assets/fonts/                #   the four font files + a re-download script
+│   ├── preview/                     #   preview images (real screenshots, light + dark)
+│   ├── crab.generated.css           #   the pixel sparkle by the greeting (generated, don't edit)
+│   └── patches.base.css             #   the hand-written draft behind patches.css
+├── plugins/
+│   ├── skin/                        # the skin plugin
+│   │   ├── README.md                #   how it makes the skin take effect
+│   │   ├── lib/index.js             #   reads the skin, puts styles on the page, serves assets
+│   │   ├── lib/css-contract.js      #   stylesheet rewriting (see its own README)
+│   │   ├── lib/client.js            #   the Claude-X settings page
+│   │   └── test/                    #   unit tests
+│   └── font-switcher/               # the font-switcher plugin
+│       ├── README.md
+│       ├── lib/index.js             #   scans the font folder
+│       └── lib/client.js            #   the font settings page
+├── crab-plugin/                     # the Clawd plugin
+│   ├── LICENSE                      #   MIT + Clawd attribution
+│   ├── README.md
+│   ├── docs/preview.png             #   preview image
+│   └── lib/client.js                #   the crab: pixel art, animation, lines
+├── pet/                             # the crab spritesheet for the pet system
+├── brand-plugin/                    # the Claude plugin
+│   ├── README.md
+│   ├── assets/default-avatar.webp   #   the default avatar
+│   └── lib/client.js                #   starburst, wordmark, greeting, name and avatar
+├── cover/                           # cover art (video cover + repo card ratios)
+├── scripts/                         # maintenance scripts (regenerate, validate, screenshot)
 ├── README.md                        # Chinese
 ├── README.en.md                     # this file
 ├── INSTALL.md                       # step-by-step install and troubleshooting
-├── LICENSE                          # MIT (code/CSS) + font and trademark notices
-└── .gitignore
+└── LICENSE                          # MIT + font and trademark notices
 ```
 
 Script usage is documented in [`scripts/README.md`](scripts/README.md).
@@ -142,77 +110,67 @@ Script usage is documented in [`scripts/README.md`](scripts/README.md).
 
 ## Install
 
-Requires the skin-center plugin `@linxin666/dsh-client-ui-skin-center` (this skin was tested against **v0.3.23**).
+The four things install on their own; missing one doesn't affect another. **Only the skin asks you to pick a route.**
 
 ### 1. The skin
 
-Copy the whole `claude/` directory into `$DSH_HOME/skins/`, keeping the directory name `claude`:
+**Through the skin center** (pick one): install `@linxin666/dsh-client-ui-skin-center`, search for Claude in its marketplace and install it, then open **Settings → Skin Center** and pick Claude. The marketplace puts it in `$DSH_HOME/skins/` for you. No restart.
+
+**Through the standalone plugin** (pick one): install `plugins/skin/`, then restart:
 
 ```bash
-# DSH_HOME defaults to ~/.dsh
-cp -r claude "$HOME/.dsh/skins/claude"
+dsh plugin --profile web add link:/path/to/dsh-claude-theme/plugins/skin
 ```
 
-Then open **Settings → Skin Center** in the GUI and pick **Claude**. The switch is live; no restart.
+On first load the plugin copies the repository's `claude/` into `$DSH_HOME/skins/claude` itself, so there is nothing for you to copy. After the restart, pick Claude in **Settings → Claude-X**.
 
-Verify it was discovered:
-
-```bash
-curl -s http://127.0.0.1:3080/api/skin-center/v2/catalog \
-  | python3 -c "import json,sys; print([ (s['manifest']['id'], s.get('warnings')) for s in json.load(sys.stdin)['skins'] if s['manifest']['id']=='claude' ])"
-```
-
-Expected: `[('claude', [])]` — note the empty `warnings`.
+(You can still place the skin by hand if you prefer: `cp -r claude "$HOME/.dsh/skins/claude"`. The plugin only fills in missing files — it never overwrites what is already there.)
 
 ### 2. The Claude plugin
 
-> Verified working on a real page. Not yet installed on a clean machine.
-
 ```bash
 dsh plugin --profile web add link:/path/to/dsh-claude-theme/brand-plugin
-# then restart DSH once (client plugins load at startup; they cannot hot-swap)
 ```
 
-Package name: `dsh-claude-brand`. The plugin does six things:
-
-1. Registers at priority **-10** on the `sidebar.brand.mark` and `conversation.hero.brand.mark` slots to shadow the official whale logo, replacing it with an inline SVG of the Anthropic/Claude radial starburst mark (`currentColor`, so it follows the theme).
-2. Replaces the official glyph-outline wordmark on `sidebar.brand.name` with real text reading "Claude".
-3. Swaps the hero headline ("探索未至之境" / "Into the Unknown") for a rotating greeting, and rewrites the product name in the document title.
-4. Declares its own browser-tab icon. The page ships no `<link rel="icon">` at all, so the browser falls back to `/favicon.svg` — DSH's whale, which lives inside the DSH install and would be clobbered by an upgrade. The plugin declares the starburst instead of editing a file it does not own.
-5. Adds a **Claude** settings page (labelled 名字) for the display name, caption and avatar.
-6. Adds the avatar row at the sidebar foot, above Settings, whose click opens an in-place editor.
-
-On priority: slot shadowing renders the **lowest number first**, so -10 outranks the official brand plugin at 0; registering at the same priority on a `single` slot throws.
+**Restart DSH once** after installing (client plugins load at startup and can't hot-swap). The whale in the sidebar becomes a starburst, the wordmark reads "Claude", and the tab title and icon change with it.
 
 ### 3. The Clawd plugin
 
 ```bash
 dsh plugin --profile web add link:/path/to/dsh-claude-theme/crab-plugin
-# then restart DSH once, same as above
 ```
 
-Package name: `dsh-claude-crab`. It does **not** depend on the skin — its pixel frames are embedded and it colours itself from the official `--dsw-*` tokens, so it works installed on its own.
+Restart the same way. The pixel crab appears on the composer edge, and poking it gets a reaction.
 
-Exactly one crab should appear: the skin detects the plugin's crab in the DOM via `body:has(.dcc-crab)` and stands down, so a failure on either side leaves one crab rather than two or none.
+The crab lives only in the plugin — the skin does not draw one, so you never get two.
 
-Full install and troubleshooting steps: [`INSTALL.md`](INSTALL.md).
+### 4. The font-switcher plugin
 
-**Too lazy for all this? Hand it to dsh, Claude Code or codex and let them install it.**
+```bash
+dsh plugin --profile web add link:/path/to/dsh-claude-theme/plugins/font-switcher
+```
+
+Restart the same way, then open **Settings → 字体** and drop your font files into the folder it shows you (`assets/fonts/custom/` inside the skin directory), and come back and hit "rescan". To label what each one is for, put them in `serif/`, `sans/` or `mono/` subfolders, or say so in the filename.
+
+Bring your own font files; the repo only has the four the skin ships with.
+
+Troubleshooting, verification and rollback for every step are in [`INSTALL.md`](INSTALL.md).
+
+**Too lazy? Hand it to dsh, Claude Code or codex and let them install it.**
 
 ---
 
 ## Limitations
 
-- **Locally-authored skins cannot run `hooks.mjs`.** The loader refuses outright for any skin without official-market provenance, returning HTTP 403 `hooks-require-review`. That is why branding is a separate plugin rather than a skin hook.
-- **Remote fonts are hard-rejected.** `@import`, remote/protocol-relative URLs, absolute paths and `../` escapes are all rejected by the sanitizer (422). Fonts must live inside the skin directory and be referenced relatively.
-- **Tool-call cards are not a 1:1 reproduction.** claude.ai has no equivalent component; tool cards are DSH-specific UI. They are restyled in Claude's card language (hairline borders, restrained radii, warm layers) — stylistic alignment, not a replica.
-- **The Clawd pixel geometry comes from a third-party reference implementation.** The dot matrix was taken from the SillyTavern extension [claude-web](https://github.com/claudenoshujin/claude-web) by **claudenoshujin**. Credit for the original pixel art belongs to that author; this project reuses only the geometry, and the selectors, animation, colours and placement are its own. See [License and notices](#license-and-notices).
-- **The Clawd in the pet panel is not frame animation.** The pet system wants an 8×9 spritesheet, but the crab has a single set of static pixel geometry, so all nine cells draw the same crab (tinted per row) rather than nine frames. Real animation needs more art.
-- **The Clawd plugin does not register through a slot.** An earlier build registered a React component into `conversation.input.overlay`, but a slot render that throws is swallowed by the error boundary — the plugin really was loaded (the skin stood down) while no crab appeared and nothing was logged. It now mounts directly onto the official `[data-composer-card]` and owns the element's lifecycle. The cost is coupling to the composer's DOM contract rather than the slot system; if that attribute changes the plugin's crab disappears and the skin's crab takes over.
-- **The preview images are screenshots of the real running UI.**
-- **The Claude plugin is verified on a real page** (sidebar mark is the Claude starburst SVG, name reads "Claude"), but has not been installed on a clean machine.
-- **No reliance on token auto-derivation.** The loader's fallback derivation is effectively non-functional — across roughly 190 uncovered tokens it derives about 1, leaving the rest at stock values. All 278 tokens here are declared explicitly.
-- **Force-scoped.** All CSS is prefixed by the loader under `html[data-dsh-skin="claude"]`, so the skin only affects the page while selected and cannot leak into other skins.
+- **Skins can't run the official hooks.** The skin center only admits skins installed from its marketplace and refuses local ones outright. That's why swapping the logo is a plugin, not part of the skin.
+- **Remote fonts differ by route.** Through the skin center, fonts must live inside the skin directory — anything referencing outside gets rejected. The standalone plugin doesn't enforce this — and therefore doesn't check anything for you either, so only run skins you wrote or can read yourself.
+- **The tool-call cards are an impression, not a replica.** claude.ai has no such thing (they're DSH-specific UI), so they're redrawn in Claude's style rather than copied.
+- **The crab's art comes from someone else.** The pixel matrix is from the SillyTavern extension [claude-web](https://github.com/claudenoshujin/claude-web) by **claudenoshujin** — the drawing credit is his. The selectors, animation, colours and placement here are original. See [License and notices](#license-and-notices).
+- **The pet-panel crab doesn't move.** The pet system wants a nine-frame animation sheet, but the crab only has one static pose, so all nine cells are the same crab in different tints. Real animation needs actual art.
+- **The crab skips the official slot system.** It used to go through it, and it went badly: errors got swallowed, the plugin loaded but no crab appeared, and nothing was logged. It now mounts straight onto the composer. The cost: if the official marker for that spot ever changes, the crab disappears — but you'll get a console warning, not silence.
+- **The skin no longer draws its own crab.** It used to carry a static one that fought with the plugin's crab (two crabs, or none), so it was removed. The crab lives only in the plugin now — skin without plugin means no crab.
+- **The preview images are real screenshots**, one per mode.
+- **The skin only applies while selected.** Everything is scoped inside the skin's own namespace, so other skins don't pick it up. Both install routes behave this way.
 
 ---
 

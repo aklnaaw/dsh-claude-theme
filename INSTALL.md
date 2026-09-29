@@ -12,9 +12,14 @@
 - 本文假设 GUI 在 `http://127.0.0.1:3080`。端口不同的话把下面的 URL 一起换掉。
 - 仓库路径以 `/path/to/dsh-claude-theme` 代指，实际用本仓库的绝对路径。
 
-**前置条件只对皮肤成立**：装皮肤需要第三方皮肤中心插件
-`@linxin666/dsh-client-ui-skin-center`（皮肤没有别的加载入口）。本皮肤在该插件的
-**v0.3.23** 上测试。第 5、6 步的两个插件**不经过皮肤中心**，只装插件的话可以跳过这一节。检查：
+**皮肤有两种装法，二选一**：
+
+- **装法一：第三方皮肤中心** `@linxin666/dsh-client-ui-skin-center`（本皮肤在该插件的 **v0.3.23** 上测试）。在它的市场里搜 Claude 装上即可，第 4 步选中。第 1 步的手动拷贝可以跳过。
+- **装法二：独立皮肤插件** `plugins/skin/`，**不需要皮肤中心**。它首次加载时会自己把皮肤装好，第 1–4 步都不用手动做，见下文第 5 步。
+
+两种装法**不要同时用**（会各自注入一遍同一套样式表）。第 6–8 步的三个插件**都不经过皮肤中心**，只装插件的话前面的皮肤步骤都可以跳过。
+
+检查皮肤中心是否已装（装法二不需要）：
 
 ```bash
 cat "$DSH_HOME/profiles/web/node_modules/@linxin666/dsh-client-ui-skin-center/package.json" \
@@ -23,7 +28,10 @@ cat "$DSH_HOME/profiles/web/node_modules/@linxin666/dsh-client-ui-skin-center/pa
 
 ---
 
-## 第 1 步：安装皮肤
+## 第 1 步：安装皮肤（手动，装法一可选）
+
+> 走**装法二**（独立插件）的话整步跳过——插件会自己装好。
+> 走**装法一**且从市场下载的话也跳过。只有想手动放置皮肤时才需要这一步。
 
 皮肤是纯资源目录：拷贝即可，不需要构建、不需要安装依赖。
 
@@ -35,6 +43,10 @@ mkdir -p "$DSH_HOME/skins"
 rm -rf "$DSH_HOME/skins/claude"
 cp -r /path/to/dsh-claude-theme/claude "$DSH_HOME/skins/claude"
 ```
+
+装法二的插件走的是同一套逻辑，只是它把「只拷运行时需要的文件、不覆盖已有文件」
+做在代码里：两份样式表、`skin.json`、4 个 woff2 字体、`LICENSE`——
+生成器的输入不会进你的皮肤目录。
 
 安装后的布局：
 
@@ -126,7 +138,7 @@ curl -s http://127.0.0.1:3080/api/skin-center/v2/skins/claude/stylesheet \
 
 ---
 
-## 第 4 步：选中皮肤
+## 第 4 步：选中皮肤（装法一：皮肤中心）
 
 在 GUI 里打开 **设置 → 皮肤中心**，选中 **Claude**。
 
@@ -143,9 +155,69 @@ curl -s http://127.0.0.1:3080/api/skin-center/v2/active
 # {"ok":true,"active":"claude", ...}
 ```
 
+> 走**装法二**（独立皮肤插件）的话跳过这一步，直接看第 5 步。
+
 ---
 
-## 第 5 步：安装 Claude 插件
+## 第 5 步：独立皮肤插件（装法二，与装法一互斥）
+
+不想为了一个皮肤装整套皮肤中心的话，用这个。**第 1–4 步都可以整段跳过**——插件会在首次加载时自己把皮肤装到 `$DSH_HOME/skins/claude`。
+
+```bash
+dsh plugin --profile web add link:/path/to/dsh-claude-theme/plugins/skin
+# 然后重启 DSH 一次
+```
+
+重启后在 **设置 → Claude-X** 里选中 Claude。
+
+- 包名 `dsh-claude-skin`。
+- **自己装皮肤**：按插件自身位置解析到仓库的 `claude/`，只拷运行时需要的 8 个文件（两份样式表、`skin.json`、4 个 woff2 字体、`LICENSE`），**只补缺、不覆盖**已有文件。所以重复加载或升级插件都不会动你改过的东西。
+- 它只做三件事：读皮肤目录、按[作用域契约](plugins/skin/README.md)注入样式表、把皮肤自带的字体和图片用路由送出去。
+- **不依赖皮肤中心**，也**不依赖**品牌插件或 Clawd 插件。
+- **不做 CSS 白名单过滤**（皮肤中心会拒绝远程 URL、`@import`、逃逸皮肤目录的路径）。只适合跑自己写的皮肤。
+
+确认它进了 bundle 列表，并且皮肤已经被播种：
+
+```bash
+DSH_HOME="${DSH_HOME:-$HOME/.dsh}"
+python3 -c "
+import json, os
+p = json.load(open(os.path.join(os.environ['DSH_HOME'], 'profiles/web/package.json')))
+print('dependencies:', [k for k in p['dependencies'] if 'claude-skin' in k])
+print('bundles     :', [b for b in p['dsh']['profile']['bundles'] if 'claude-skin' in b])
+"
+ls "$DSH_HOME/skins/claude/skin.json" && echo '  ↑ 皮肤已就位'
+```
+
+顺带确认样式表真的被正确处理了。**页面需要登录 cookie**，裸请求会 401，所以先在本机浏览器里登录一次，把 cookie 导出成 Netscape 格式的 `cookies.txt`，再跑：
+
+```bash
+python3 -c "
+import re
+raw = open('served.html', encoding='utf8').read()   # curl -b cookies.txt http://127.0.0.1:3080/ -o served.html
+blocks = re.findall(r'<style>(.*?)</style>', raw, re.S)
+skin = [b for b in blocks if 'data-dsh-skin' in b]
+print('注入的皮肤样式块数:', len(skin))
+print('html 属性:', re.search(r'<html[^>]*>', raw).group(0))
+print('裸 :root 选择器:', bool(re.search(r'(^|[\n}])\s*:root\s*[,{]', re.sub(r'html\[data-dsh-skin=\"[a-z0-9-]+\"\]', '', skin[0] if skin else ''))))
+"
+```
+
+期望输出（本机实测）：
+
+```
+注入的皮肤样式块数: 1
+html 属性: <html lang="en" data-dsh-skin="claude">
+裸 :root 选择器: False
+```
+
+第三行是重点：`False` 说明样式表被正确改了作用域。若为 `True`，皮肤会看起来**完全没生效**。
+
+懒得跑脚本的话，直接开页面按 F12，在 Elements 里看 `<html>` 有没有 `data-dsh-skin="claude"`，再看 `<head>` 里有没有一个装着皮肤样式表的 `<style>`。
+
+---
+
+## 第 6 步：安装 Claude（星芒）插件
 
 > 已在本机真实页面验证生效；尚未在干净环境里装过一遍。
 
@@ -183,7 +255,7 @@ dsh plugin --profile web remove dsh-claude-brand
 # 然后重启 DSH
 ```
 
-## 第 6 步：安装 Clawd 插件
+## 第 7 步：安装 Clawd 插件
 
 ```bash
 dsh plugin --profile web add link:/path/to/dsh-claude-theme/crab-plugin
@@ -208,7 +280,7 @@ print('bundles     :', [b for b in p['dsh']['profile']['bundles'] if 'crab' in b
 
 验证：输入框上沿应出现一只像素蟹。鼠标靠近时它的眼睛会朝四个方向看，停一会儿会眨眼，**戳一下会跳起来说一句话**。
 
-装完应当**恰好一只蟹**：皮肤在检测到插件蟹进入 DOM 后会主动让位（`body:has(.dcc-crab)`），所以两边不会重叠，任何一边失败也不会出现零只。
+蟹只在插件里——皮肤不画蟹，所以不会出现两只；若蟹没出现，看控制台有没有 `[dsh-claude-crab]` 开头的警告。
 
 卸载：
 
@@ -216,6 +288,36 @@ print('bundles     :', [b for b in p['dsh']['profile']['bundles'] if 'crab' in b
 dsh plugin --profile web remove dsh-claude-crab
 # 然后重启 DSH
 ```
+
+---
+
+## 第 8 步：安装字体切换插件（可选）
+
+想换掉 Claude 皮肤的三组字体（正文衬线、界面无衬线、代码等宽）时装这个。
+
+```bash
+dsh plugin --profile web add link:/path/to/dsh-claude-theme/plugins/font-switcher
+# 同样重启 DSH 一次
+```
+
+- 包名 `dsh-font-switcher`。
+- 用**绝对路径** + `--profile web`，与前面几个插件相同。
+- 它不引用皮肤插件的代码，只按约定读 `$DSH_HOME/claude-skin.json` 决定字体文件夹（缺席时退回 `skin-center-active.json`，再退回 `claude`）。
+- **字体文件不随仓库分发**，需要自己准备并放进文件夹。
+
+用法：打开 **设置 → 字体**，把字体文件丢进页面显示的文件夹
+（默认 `$DSH_HOME/skins/claude/assets/fonts/custom/`），回来点 **重新扫描**。
+用途可以靠子文件夹（`serif/`、`sans/`、`mono/`）或文件名关键词标明，认中文。
+详见 [`plugins/font-switcher/README.md`](plugins/font-switcher/README.md)。
+
+卸载：
+
+```bash
+dsh plugin --profile web remove dsh-font-switcher
+# 然后重启 DSH
+```
+
+字体文件夹不会被动，可以留着。
 
 ---
 
@@ -239,6 +341,11 @@ dsh plugin --profile web remove dsh-claude-crab
 | 同上 | 插件加载报错 | 看 DSH 启动日志里的客户端插件错误 |
 | 插件加载了但界面没变 | 用了相对路径且解析到了别处 | `ls -la "$DSH_HOME/profiles/web/node_modules/" \| grep brand`，符号链接应指向 `brand-plugin` 的真实目录 |
 | 同上 | slot 被别的插件占着 | 插件的 slot 优先级是 -10，同优先级注册 `single` slot 会抛错；看 Console |
+| 设置里找不到 **Claude-X** | 独立皮肤插件没装或没重启 | 检查 `$DSH_HOME/profiles/web/node_modules/dsh-claude-skin` 存在且 bundle 列表里有 `dsh-claude-skin`，然后重启 DSH |
+| 独立皮肤插件装了，皮肤没生效 | 样式表没被作用域化 | 跑第 5 步末尾的脚本：应看到 `<html … data-dsh-skin="claude">`，且「裸 :root 选择器」为 `False` |
+| 皮肤装了两遍 / 样式冲突 | 皮肤中心与独立插件同时装着 | 卸掉一个：`dsh plugin --profile web remove dsh-claude-skin`（或停用皮肤中心），然后重启 |
+| 设置里找不到 **字体** | 字体切换插件没装或没重启 | 检查 bundle 列表里有 `dsh-font-switcher`，然后重启 DSH |
+| 字体换了没反应 | 字体文件没被扫描到，或皮肤没装 | 确认文件在 `$DSH_HOME/skins/claude/assets/fonts/custom/` 下且后缀受支持（`.woff2`/`.woff`/`.ttf`/`.otf`），点「重新扫描」；没装皮肤时字体没有可见效果 |
 | 想回到之前的皮肤 | — | 见下面「回滚」 |
 
 ---
@@ -281,13 +388,40 @@ PY
 
 刷新页面即可生效。
 
+**走装法二（独立皮肤插件）的话，选中的皮肤存在另一个文件**，格式更简单：
+
+```bash
+cat "$DSH_HOME/claude-skin.json"
+# {"active": "claude"}
+```
+
+```bash
+python3 - <<'PY'
+import json, os, pathlib
+p = pathlib.Path(os.environ.get("DSH_HOME", pathlib.Path.home() / ".dsh")) / "claude-skin.json"
+doc = json.loads(p.read_text())
+doc["active"] = "blue-fantasy"          # ← 换成要回滚到的 id
+p.write_text(json.dumps(doc, indent=2) + "\n")
+print(p, "->", doc["active"])
+PY
+```
+
+重新加载页面即可（这一个装法的样式表在每次索引渲染时重读，改完不用重启）。
+
 要彻底卸载本皮肤：
 
 ```bash
 rm -rf "$DSH_HOME/skins/claude"
 ```
 
-（先确保 `skin-center-active.json` 的 `active` 不是 `claude`，否则页面会退回出厂观感。）
+（先确保上面那个 `active` 不是 `claude`，否则页面会退回出厂观感。）
+
+要卸载独立皮肤插件本身：
+
+```bash
+dsh plugin --profile web remove dsh-claude-skin
+# 然后重启 DSH
+```
 
 卸载 Claude 插件：
 
@@ -303,4 +437,4 @@ dsh plugin --profile web remove dsh-claude-crab
 # 然后重启 DSH
 ```
 
-三个产物互相独立，可以只卸其中任意一个。卸掉 Clawd 插件后输入框上沿的蟹会交还给皮肤（皮肤的静态蟹自动接管），不会留下空位。
+四个产物互相独立，可以只卸其中任意一个。卸掉 Clawd 插件后输入框上沿就没有蟹了——皮肤不画蟹（蟹只在插件里）。卸掉皮肤插件不影响蟹和星芒，只是没有皮肤配色。
