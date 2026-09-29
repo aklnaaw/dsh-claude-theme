@@ -28,9 +28,8 @@
 
 ## 预览
 
-`preview/light.jpg` 与 `preview/dark.jpg` 是 1440x900 的渲染图：官方外壳门面
-快照 + 注入本皮肤样式表。与目录内其余皮肤同一套渲染管线，因此侧栏与输入区的
-几何尺寸与它们一致。
+`preview/light.jpg` 与 `preview/dark.jpg` 是真实运行界面的截图（1920x1080）：
+亮色与暗色各一张，画布色值与设计值一致。
 
 ## 完整版本在项目主仓库
 
@@ -52,7 +51,7 @@
   - `inter-normal.woff2`：Inter，Copyright 2016 The Inter Project Authors。
   - `jetbrains-mono-normal.woff2`：JetBrains Mono，Copyright 2020 The JetBrains Mono Project Authors。
   - 四者均为 Google Fonts 的 latin 子集构建，不含中文；中文走系统字体回退。
-- 预览图 `preview/light.jpg`、`preview/dark.jpg`：基于 DSH 官方外壳门面快照渲染，不含第三方美术素材。
+- 预览图 `preview/light.jpg`、`preview/dark.jpg`：真实运行界面的截图，不含第三方美术素材。
 - 本皮肤复刻 claude.ai 应用界面的观感。「Claude」与「Anthropic」是 Anthropic PBC 的商标；本皮肤为风格致敬，与 Anthropic 无隶属或背书关系。Anthropic 实际使用的 Copernicus 与 StyreneB 为商业授权字体，未包含在内，此处以开源的 Newsreader 与 Inter 替代。
 
 ## 已知限制

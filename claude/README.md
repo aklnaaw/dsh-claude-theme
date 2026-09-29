@@ -32,9 +32,8 @@ alongside the other themes in the skin center package.
 
 ## Preview
 
-`preview/light.jpg` and `preview/dark.jpg` are 1440x900 renders of the official
-shell facade with this skin's stylesheet injected — the same pipeline the rest of
-the catalog uses, so the sidebar and composer geometry match the other skins.
+`preview/light.jpg` and `preview/dark.jpg` are screenshots of the real running
+UI at 1920x1080, one per mode, with canvas colours matching the design values.
 
 ## The full version lives in the project repository
 
@@ -61,8 +60,8 @@ with installation notes and screenshots in that repository's README.
   - `inter-normal.woff2`: Inter, Copyright 2016 The Inter Project Authors.
   - `jetbrains-mono-normal.woff2`: JetBrains Mono, Copyright 2020 The JetBrains Mono Project Authors.
   - All four are latin-subset builds from Google Fonts and contain no CJK; Chinese falls back to system fonts.
-- Preview images `preview/light.jpg` and `preview/dark.jpg`: renders of the DSH official shell
-  facade snapshot; no third-party artwork is used.
+- Preview images `preview/light.jpg` and `preview/dark.jpg`: screenshots of the real
+  running UI; no third-party artwork is used.
 - This skin reproduces the visual language of the claude.ai interface. "Claude" and "Anthropic" are
   trademarks of Anthropic PBC; this skin is a stylistic homage and is not affiliated with or endorsed by
   Anthropic. The typefaces Anthropic actually uses (Copernicus and StyreneB) are commercially licensed and
