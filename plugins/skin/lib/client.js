@@ -89,6 +89,8 @@ window.__ModuleLoader__.load({
 			"color:var(--dsw-alias-label-primary);background:transparent;",
 			"border:1px solid var(--dsw-alias-border-l2)}",
 			".dcs-mini:hover{background:var(--dsw-alias-interactive-bg-hover)}",
+			".dcs-toggle{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--dsw-alias-label-primary)}",
+			".dcs-toggle input{accent-color:var(--dsw-alias-brand-primary)}",
 		].join("");
 
 		/* ------------------------------------------------------------------
@@ -124,6 +126,7 @@ window.__ModuleLoader__.load({
 			if (typeof patch.name === "string") next.name = patch.name.slice(0, 24);
 			if (typeof patch.sub === "string") next.sub = patch.sub.slice(0, 32);
 			if (typeof patch.avatar === "string") next.avatar = patch.avatar;
+			if (typeof patch.showProfile === "boolean") next.showProfile = patch.showProfile;
 			try {
 				if (typeof localStorage !== "undefined") {
 					localStorage.setItem(PREFS_KEY, JSON.stringify(next));
@@ -362,6 +365,27 @@ window.__ModuleLoader__.load({
 						),
 					),
 					h("div", { className: "dcs-hint" }, "不选的话显示 Claude 星芒。图片以数据形式存在本地。"),
+				),
+
+				h(
+					"div",
+					{ className: "dcs-row" },
+					h("div", { className: "dcs-lbl" }, "侧栏底部那行"),
+					h(
+						"label",
+						{ className: "dcs-toggle" },
+						h("input", {
+							type: "checkbox",
+							checked: prefs.showProfile !== false,
+							onChange: function (e) { writePrefs({ showProfile: e.target.checked }); },
+						}),
+						h("span", null, "显示头像和名字"),
+					),
+					h(
+						"div",
+						{ className: "dcs-hint" },
+						"关掉后侧栏底部就不放这行了；名字和头像的数据还在，随时能开回来。",
+					),
 				),
 			);
 		}

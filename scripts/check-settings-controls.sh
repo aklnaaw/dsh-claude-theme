@@ -142,6 +142,29 @@ run_case "font-switcher/select" "$ROOT/plugins/font-switcher/lib/client.js" '
   }, 400);
 '
 
+# --- Skin plugin: flip the show-profile toggle. -----------------------------
+# The toggle writes into the shared dsh-claude-brand.prefs record and the page
+# carries three listeners (settings state, sidebar row, editor), so it is
+# exactly the kind of control the frozen-control bug eats.
+run_case "skin/profile-toggle" "$ROOT/plugins/skin/lib/client.js" '
+  window.fetch = function(){ return Promise.resolve({ ok:true, json:function(){
+    return Promise.resolve({ active:"claude", skins:[{id:"claude",label:"Claude"}] }); }}); };
+  var mod = window.__reg.factory(function(n){ if(n==="react") return window.React; throw new Error(n); });
+  var captured = null;
+  var slots = { inject: function(k,cb){ cb(); return function(){}; },
+                register: function(s,c){ if (s.id==="claude-skin") captured=c; return function(){}; } };
+  mod.apply({ effect: function(f){ var d=f(); return typeof d==="function"?d:function(){}; },
+              get: function(n){ return n==="slots"?slots:undefined; } });
+  ReactDOM.createRoot(document.getElementById("host")).render(React.createElement(captured,null));
+  setTimeout(function(){
+    var t = document.querySelectorAll(".dcs-toggle input")[0];
+    if (!t) { R.fatal = "toggle not rendered"; R.alive = 0; return; }
+    t.click();
+    t.click();
+    setTimeout(function(){ R.alive = document.querySelectorAll(".dcs-toggle input").length; }, 200);
+  }, 400);
+'
+
 echo
 if [ "$fail" -eq 0 ]; then
   echo "check-settings-controls: $pass passed"
