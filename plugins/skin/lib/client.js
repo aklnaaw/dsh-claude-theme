@@ -10,6 +10,7 @@ window.__ModuleLoader__.load({
 
 		var ROUTE_SKINS = "/api/dsh-claude-skin/skins";
 		var ROUTE_ACTIVE = "/api/dsh-claude-skin/active";
+		var ROUTE_STYLESHEET = "/api/dsh-claude-skin/stylesheet";
 
 		/* ------------------------------------------------------------------
 		 * Display name.
@@ -392,6 +393,95 @@ window.__ModuleLoader__.load({
 
 		var STYLE_ID = "dsh-claude-skin:styles";
 
+		/* ------------------------------------------------------------------
+		 * Desktop fallback.
+		 *
+		 * The desktop host renders the structured injection rows but drops
+		 * every tapIndex transform, so the scoped stylesheet arrives in <head>
+		 * while the `data-dsh-skin` attribute it hangs off never gets stamped
+		 * — no selector can match, and the skin looks completely absent. The
+		 * client half finishes the job there: fetch the stylesheet, stamp the
+		 * attribute, and give the served sheet a stable id.
+		 *
+		 * INVARIANT: on hosts where the server did deliver (web), this code
+		 * must do nothing at all — no request, no DOM writes — or the page
+		 * ends up with two 600 KB stylesheets.
+		 * ------------------------------------------------------------------ */
+		var SKIN_STYLE_ID = "dsh-claude-skin:skin";
+
+		/**
+		 * Did the host deliver the whole skin?
+		 *
+		 * The test is the attribute on <html>, NOT the string "data-dsh-skin"
+		 * somewhere in head text — that string appears inside the stylesheet
+		 * itself (every scoped selector carries it), so it is always true and
+		 * would silently skip the fix. The attribute is what only the host's
+		 * tap can set, so its absence is the one reliable signal.
+		 */
+		function serverDeliveredSkin() {
+			if (typeof document === "undefined") return false;
+			var root = document.documentElement;
+			if (!root || !root.getAttribute("data-dsh-skin")) return false;
+			return document.head !== null && document.head.querySelectorAll("style").length > 0;
+		}
+
+		/**
+		 * The sheet the host injected: a bare <style> with no id, recognizable
+		 * only by its content. Our own UI stylesheet never contains the scope
+		 * marker, so this match is reliable.
+		 */
+		function injectedSheet() {
+			var styles = document.head.querySelectorAll("style");
+			for (var i = 0; i < styles.length; i++) {
+				if (styles[i].textContent.indexOf("data-dsh-skin") !== -1) return styles[i];
+			}
+			return null;
+		}
+
+		/**
+		 * Stamp the attribute, then give the stylesheet a stable id.
+		 *
+		 * The attribute goes first — on the desktop host the sheet is already
+		 * in head and that alone fixes every selector. The existing element is
+		 * then replaced rather than appended to: the host's sheet has no id,
+		 * so a blind append would stack a second copy (and re-scan would keep
+		 * adding more).
+		 */
+		function applyStylesheet(id, css) {
+			if (typeof css !== "string" || css === "") return false;
+			if (typeof document === "undefined" || !document.head) return false;
+
+			document.documentElement.setAttribute("data-dsh-skin", id);
+
+			var el = document.getElementById(SKIN_STYLE_ID);
+			if (el === null) {
+				el = document.createElement("style");
+				el.id = SKIN_STYLE_ID;
+				var served = injectedSheet();
+				if (served !== null) {
+					document.head.replaceChild(el, served);
+				} else {
+					document.head.appendChild(el);
+				}
+			}
+			el.textContent = css;
+			return true;
+		}
+
+		function installSkinStylesheet() {
+			if (serverDeliveredSkin()) return Promise.resolve(false);
+			return fetch(ROUTE_STYLESHEET, { credentials: "same-origin" })
+				.then(function (r) { return r.ok ? r.text() : null; })
+				.then(function (css) {
+					if (css === null) return false;
+					return fetchSkins().then(function (data) {
+						var id = data && typeof data.active === "string" ? data.active : "claude";
+						return applyStylesheet(id, css);
+					});
+				})
+				.catch(function () { return false; });
+		}
+
 		function apply(ctx) {
 			ctx.effect(function () {
 				var el = document.createElement("style");
@@ -402,6 +492,19 @@ window.__ModuleLoader__.load({
 					if (el.parentNode) el.parentNode.removeChild(el);
 				};
 			}, "dsh-claude-skin:styles");
+
+			/* Desktop fallback: runs on every host, acts only where the server
+			 * skipped the tap. Teardown looks the element up rather than
+			 * closing over it — it is created in a fetch callback, after this
+			 * effect has already returned. */
+			ctx.effect(function () {
+				installSkinStylesheet();
+				return function () {
+					var skin = document.getElementById(SKIN_STYLE_ID);
+					if (skin && skin.parentNode) skin.parentNode.removeChild(skin);
+					document.documentElement.removeAttribute("data-dsh-skin");
+				};
+			}, "dsh-claude-skin:skin stylesheet");
 
 			var slots = ctx.get("slots");
 			if (slots === undefined) return;

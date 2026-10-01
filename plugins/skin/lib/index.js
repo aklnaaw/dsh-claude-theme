@@ -58,6 +58,7 @@ export const inject = ["connection", "webServer"];
 const ROUTE_ASSET = "/api/dsh-claude-skin/asset";
 const ROUTE_SKINS = "/api/dsh-claude-skin/skins";
 const ROUTE_ACTIVE = "/api/dsh-claude-skin/active";
+const ROUTE_STYLESHEET = "/api/dsh-claude-skin/stylesheet";
 
 /** The skin shown when no state file names one. */
 const FALLBACK_SKIN = "claude";
@@ -259,6 +260,39 @@ function json(body, status) {
   });
 }
 
+/**
+ * The scoped stylesheet if it can safely go inside a <style> element.
+ *
+ * A stylesheet containing the closing tag would end its own <style> element
+ * early and spill the rest of the sheet into the document as markup. The
+ * shipped sheets do not, and this refuses to guess if one ever does. Shared by
+ * the injection row and the desktop-fallback route so the check exists once.
+ */
+function injectableStylesheet() {
+  const css = skinStylesheet();
+  if (css === null || css.includes("</style")) return null;
+  return css;
+}
+
+/**
+ * Hand the scoped stylesheet to the client half as text.
+ *
+ * This exists for the desktop host, which renders the structured injection
+ * rows but drops every `tapIndex` transform — so the stylesheet arrives while
+ * the `data-dsh-skin` attribute it is scoped under never gets stamped, and
+ * none of its selectors can match. The client half fetches this on hosts where
+ * the attribute is missing and finishes the job itself.
+ */
+function serveStylesheet() {
+  const css = injectableStylesheet();
+  if (css === null) return new Response("no stylesheet", { status: 404 });
+  return new Response(css, {
+    status: 200,
+    // no-store: a switched skin must not be answered from cache
+    headers: { "content-type": "text/css; charset=utf-8", "cache-control": "no-store" },
+  });
+}
+
 /** Validate a skin-relative asset path and return its absolute location. */
 function assetFile(rel) {
   if (typeof rel !== "string" || rel === "") return null;
@@ -320,6 +354,7 @@ async function handle(request) {
 
   if (url.pathname === ROUTE_ASSET) return serveAsset(url.searchParams.get("path"));
   if (url.pathname === ROUTE_SKINS) return json({ active: activeSkin(), skins: listSkins() });
+  if (url.pathname === ROUTE_STYLESHEET) return serveStylesheet();
   if (url.pathname === ROUTE_ACTIVE) {
     if (request.method !== "POST") return new Response("method not allowed", { status: 405 });
     let body = {};
@@ -347,6 +382,7 @@ export function apply(ctx) {
     [ROUTE_ASSET, ["GET"], "asset"],
     [ROUTE_SKINS, ["GET"], "skins"],
     [ROUTE_ACTIVE, ["POST"], "active"],
+    [ROUTE_STYLESHEET, ["GET"], "stylesheet"],
   ]) {
     ctx.effect(
       () => ctx.connection.fetch.register({ path, methods, requestBody: "buffered", fetch: handle }),
@@ -365,12 +401,8 @@ export function apply(ctx) {
   // The index-injection table is re-collected per render, so the stylesheet is
   // read and transformed fresh each time rather than captured at activation.
   ctx.on("webserver/index-inject", (table) => {
-    const css = skinStylesheet();
-    // A stylesheet containing the closing tag would end its own <style>
-    // element early and spill the rest of the sheet into the document as
-    // markup. The shipped sheets do not, and this refuses to guess if one
-    // ever does.
-    if (css === null || css.includes("</style")) return;
+    const css = injectableStylesheet();
+    if (css === null) return;
     table.push({ kind: "style", text: css });
   });
 }

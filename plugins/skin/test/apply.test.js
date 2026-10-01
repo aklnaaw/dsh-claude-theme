@@ -121,7 +121,7 @@ function rendered(html, rows) {
   return html.replace(/(<head(?:\s[^>]*)?>)/i, `$1${head}`);
 }
 
-test("apply registers the three routes, an html tap and the injection listener", () => {
+test("apply registers the routes, an html tap and the injection listener", () => {
   const ctx = fakeCtx();
   apply(ctx);
 
@@ -131,11 +131,38 @@ test("apply registers the three routes, an html tap and the injection listener",
       ["/api/dsh-claude-skin/active", "POST"],
       ["/api/dsh-claude-skin/asset", "GET"],
       ["/api/dsh-claude-skin/skins", "GET"],
+      ["/api/dsh-claude-skin/stylesheet", "GET"],
     ],
   );
   assert.equal(ctx.taps.length, 1, "the <html> attribute needs exactly one index tap");
   assert.equal((ctx.listeners.get("webserver/index-inject") || []).length, 1);
 });
+
+test("the stylesheet route serves the same scoped sheet the injection row does", async () => {
+  // The desktop host drops the tap, so the client half rebuilds the attribute
+  // from this route's text. That only works if the route hands out exactly the
+  // bytes the injection row would have — otherwise the two paths diverge.
+  const ctx = fakeCtx();
+  apply(ctx);
+
+  const rows = [];
+  for (const handler of ctx.listeners.get("webserver/index-inject") || []) handler(rows);
+  assert.equal(rows.length, 1, "the injection table must carry exactly one style row");
+
+  const route = ctx.routes.find((r) => r.path === "/api/dsh-claude-skin/stylesheet");
+  assert.ok(route, "the stylesheet route must be registered");
+  const response = await route.fetch(new Request("http://localhost" + route.path));
+  const css = await response.text();
+
+  assert.equal(response.status, 200);
+  assert.equal(css, rows[0].text, "route text and injected row must be identical");
+  assert.ok(css.includes(`html[data-dsh-skin="${activeId()}"] body`), "the served sheet is scoped");
+  assert.ok(!css.includes("</style"), "the served sheet must not carry a closing style tag");
+});
+
+function activeId() {
+  return JSON.parse(readFileSync(join(TEST_HOME, "claude-skin.json"), "utf8")).active;
+}
 
 test("the served document carries both the scoped stylesheet and the attribute", () => {
   const ctx = fakeCtx();
