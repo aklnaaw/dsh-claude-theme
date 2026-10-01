@@ -9,6 +9,8 @@
 
 Makes the DSH Web GUI look like the claude.ai app: warm cream canvas, serif reading text, coral accent.
 
+> **This branch adds desktop-app support** (the DeepSeek Harness desktop app). I don't actually use the desktop app much, though — I got it working once and left it there, so **I can't promise it keeps working**. If it breaks, use `master` (web-only, the branch I use daily).
+
 The repo holds five things. Each installs on its own, and none of them gets in another's way:
 
 | | What it is |
