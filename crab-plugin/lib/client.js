@@ -285,7 +285,181 @@ window.__ModuleLoader__.load({
       ".dcc-crab,.dcc-say{transition:none}",
       /* One rule for every reaction: they all animate the wrapper now. */
       ".dcc-crab .dcc-anim{animation:none}",
-      ".dcc-heart{display:none}}",
+      ".dcc-heart{display:none}",
+      ".dcc-egg-card,.dcc-egg-scrim{animation:none!important}}",
+    ].join("");
+
+    /* ------------------------------------------------------------------ *
+     * The easter egg's own stylesheet.
+     *
+     * Kept apart from CSS above so the shipped crab is untouched by it: if
+     * this sheet fails to inject, the crab still works and the egg simply
+     * never appears.
+     *
+     * Colours come from --dsw-* tokens with the skin's own values as
+     * fallbacks, so the card looks like the interface whether or not the
+     * Claude skin is the one installed. Nothing here reads --cl-*, which is
+     * the skin's private prefix.
+     * ------------------------------------------------------------------ */
+    var EGG_CSS = [
+      ".dcc-egg-scrim{position:fixed;inset:0;z-index:2147483000;",
+      "display:flex;align-items:center;justify-content:center;",
+      "padding:20px;overflow:auto;",
+      "background:rgba(20,20,19,.34);",
+      "-webkit-backdrop-filter:blur(10px) saturate(.9);",
+      "backdrop-filter:blur(10px) saturate(.9);",
+      "font-family:var(--dsw-font-family,'Inter',-apple-system,BlinkMacSystemFont,sans-serif);",
+      "animation:dcc-egg-in 260ms ease-out both}",
+
+      "@keyframes dcc-egg-in{from{opacity:0}to{opacity:1}}",
+
+      ".dcc-egg-card{width:100%;max-width:470px;",
+      "background:var(--dsw-alias-bg-overlay,#faf9f5);",
+      "color:var(--dsw-alias-label-primary,#141413);",
+      "border:1px solid var(--dsw-alias-border-l2,#e6dfd8);",
+      "border-radius:14px;overflow:hidden;",
+      "box-shadow:0 30px 70px -16px rgba(0,0,0,.34),0 2px 8px -2px rgba(0,0,0,.08);",
+      "animation:dcc-egg-rise 380ms cubic-bezier(.2,.8,.25,1) both}",
+
+      "@keyframes dcc-egg-rise{",
+      "from{opacity:0;transform:translateY(10px)}",
+      "to{opacity:1;transform:none}}",
+
+      ".dcc-egg-head{display:flex;align-items:center;gap:10px;",
+      "padding:13px 24px;border-bottom:1px solid var(--dsw-alias-border-l1,#ebe6df)}",
+
+      ".dcc-egg-dot{width:7px;height:7px;border-radius:50%;flex:none;",
+      "background:var(--dsw-alias-label-tertiary,#8a8781)}",
+
+      ".dcc-egg-subj{font-size:13.5px;font-weight:500;white-space:nowrap;",
+      "overflow:hidden;text-overflow:ellipsis}",
+
+      ".dcc-egg-from{margin-left:auto;font-size:12px;flex:none;",
+      "color:var(--dsw-alias-label-tertiary,#8a8781)}",
+
+      ".dcc-egg-body{padding:24px 26px 26px}",
+
+      ".dcc-egg-burst{display:block;margin-bottom:18px;",
+      "color:var(--dsw-alias-brand-primary,#d97757)}",
+
+      ".dcc-egg-body p{margin:0 0 15px;font-size:14.5px;line-height:1.62;",
+      "color:var(--dsw-alias-label-primary-dimmed,#3d3d3a)}",
+
+      ".dcc-egg-body p.dcc-egg-hello{margin-bottom:16px;",
+      "color:var(--dsw-alias-label-primary,#141413)}",
+
+      ".dcc-egg-body p:last-child{margin-bottom:0}",
+
+      ".dcc-egg-link{color:inherit;text-decoration:underline;",
+      "text-underline-offset:2.5px;cursor:pointer}",
+
+      /* Focus lands on the card, not on the first link: a programmatic focus
+       * after a mouse click is NOT :focus-visible, so the browser would paint
+       * its default black ring around a word and it reads as a rendering bug.
+       * The card takes focus silently and Tab reaches the controls. */
+      ".dcc-egg-card:focus{outline:none}",
+
+      ".dcc-egg-link:focus-visible,.dcc-egg-btn:focus-visible{",
+      "outline:2px solid var(--dsw-alias-brand-primary,#d97757);",
+      "outline-offset:2px;border-radius:3px}",
+
+      ".dcc-egg-btn{font:inherit;font-size:14px;font-weight:500;",
+      "padding:9px 18px;border-radius:999px;cursor:pointer;",
+      "border:1px solid var(--dsw-alias-border-l2,#e6dfd8);",
+      "background:transparent;color:var(--dsw-alias-label-primary,#141413)}",
+
+      ".dcc-egg-btn.dcc-egg-primary{",
+      "background:var(--dsw-alias-brand-primary,#d97757);",
+      "border-color:var(--dsw-alias-brand-primary,#d97757);color:#fff}",
+
+      ".dcc-egg-btn:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#d97757);",
+      "outline-offset:2px}",
+
+      /* Page 2: the appeal form, which is where the explanation lives. */
+      ".dcc-egg-h2{margin:0 0 6px;font-size:21px;font-weight:400;",
+      "font-family:var(--dsw-font-family,'Inter',sans-serif)}",
+
+      ".dcc-egg-sub{margin:0;font-size:13px;line-height:1.6;",
+      "color:var(--dsw-alias-label-tertiary,#8a8781)}",
+
+      ".dcc-egg-label{font-size:11.5px;font-weight:500;letter-spacing:.06em;",
+      "text-transform:uppercase;margin:22px 0 10px;",
+      "color:var(--dsw-alias-label-tertiary,#8a8781)}",
+
+      ".dcc-egg-list{list-style:none;margin:0 0 22px;padding:0;",
+      "border-top:1px solid var(--dsw-alias-border-l2,#e6dfd8)}",
+
+      ".dcc-egg-list li{padding:0;",
+      "border-bottom:1px solid var(--dsw-alias-border-l1,#ebe6df)}",
+
+      ".dcc-egg-list label{display:flex;gap:12px;align-items:flex-start;",
+      "width:100%;padding:10px 2px;cursor:pointer;",
+      "font-size:14px;line-height:1.5;",
+      "color:var(--dsw-alias-label-primary-dimmed,#3d3d3a)}",
+
+      ".dcc-egg-list input{position:absolute;opacity:0;width:0;height:0}",
+
+      ".dcc-egg-box{flex:none;width:15px;height:15px;margin-top:1px;",
+      "border:1px solid var(--dsw-alias-border-l2,#e6dfd8);border-radius:3px;",
+      "display:flex;align-items:center;justify-content:center;",
+      "transition:background 120ms,border-color 120ms}",
+
+      ".dcc-egg-box:after{content:'';width:7px;height:4px;",
+      "border-left:1.6px solid #fff;border-bottom:1.6px solid #fff;",
+      "transform:rotate(-45deg) translate(.5px,-1px) scale(0);",
+      "transition:transform 120ms}",
+
+      ".dcc-egg-list input:checked+.dcc-egg-box{",
+      "background:var(--dsw-alias-brand-primary,#d97757);",
+      "border-color:var(--dsw-alias-brand-primary,#d97757)}",
+
+      ".dcc-egg-list input:checked+.dcc-egg-box:after{",
+      "transform:rotate(-45deg) translate(.5px,-1px) scale(1)}",
+
+      ".dcc-egg-list input:focus-visible+.dcc-egg-box{",
+      "outline:2px solid var(--dsw-alias-brand-primary,#d97757);outline-offset:2px}",
+
+      ".dcc-egg-strong{font-weight:500;",
+      "color:var(--dsw-alias-label-primary,#141413)}",
+
+      ".dcc-egg-foot{display:flex;gap:10px;align-items:center}",
+
+      ".dcc-egg-note{margin-left:auto;font-size:12px;",
+      "color:var(--dsw-alias-label-tertiary,#8a8781)}",
+
+      /* Page 3: the reveal. */
+      ".dcc-egg-eyebrow{font-size:11.5px;font-weight:500;letter-spacing:.13em;",
+      "text-transform:uppercase;margin-bottom:12px;",
+      "color:var(--dsw-alias-label-tertiary,#8a8781)}",
+
+      ".dcc-egg-kicker{margin:0 0 14px;font-size:27px;line-height:1.3;font-weight:400}",
+
+      ".dcc-egg-said{display:flex;gap:14px;align-items:flex-start;",
+      "margin-top:22px;padding:16px;border-radius:12px;",
+      "border:1px solid var(--dsw-alias-border-l2,#e6dfd8);",
+      "background:var(--dsw-alias-bg-base,#faf9f5)}",
+
+      ".dcc-egg-said p{margin:0;font-size:14.5px;line-height:1.6;",
+      "color:var(--dsw-alias-label-primary-dimmed,#3d3d3a)}",
+
+      ".dcc-egg-fine{margin-top:22px;padding-top:16px;font-size:12px;line-height:1.6;",
+      "border-top:1px solid var(--dsw-alias-border-l1,#ebe6df);",
+      "color:var(--dsw-alias-label-tertiary,#8a8781)}",
+
+      ".dcc-egg-fine b{font-weight:500;",
+      "color:var(--dsw-alias-label-primary-dimmed,#3d3d3a)}",
+
+      /* The reveal card is the crab talking, so it carries the crab -- drawn
+       * from the same FRAMES.open dot matrix the live sprite uses, at a size
+       * that fits the speech row.
+       *
+       * The frame's box-shadow resolves --dcc-body / --dcc-eye, which are
+       * declared on .dcc-crab; the egg sits on body, outside that subtree, so
+       * it has to bring its own copy or the whole sprite renders invisible. */
+      ".dcc-egg-crab{--dcc-body:#d97757;--dcc-eye:#141413;",
+      "position:relative;flex:none;width:48px;height:32px}",
+      ".dcc-egg-crab i{position:absolute;left:0;top:0;width:3px;height:3px;",
+      "background:transparent;transform-origin:0 0;transform:scale(.62)}",
     ].join("");
 
     /* ------------------------------------------------------------------ *
@@ -318,9 +492,58 @@ window.__ModuleLoader__.load({
        * because that is what makes the crab feel fond rather than just
        * reactive; the switch is here for anyone who finds it too much. */
       nuzzle: true,
+      /* The mystery switch. On by default: an easter egg nobody can find is
+       * not an easter egg. Off silences it permanently. */
+      mystery: true,
       /* Line pools. null means "use the built-in pool for this situation". */
       lines: null,
     };
+
+    /* ------------------------------------------------------------------ *
+     * The suspension easter egg.
+     *
+     * Seven pokes in one burst, then a 5% roll, then nothing for a week. All
+     * three gates matter: seven makes it deliberate rather than incidental, 5%
+     * makes it a surprise rather than a cutscene, and the week-long cooldown
+     * keeps a joke from becoming a thing that keeps happening to you.
+     *
+     * The burst counter is the crab's existing `pokeCount`, so this adds no
+     * new input handling.
+     * ------------------------------------------------------------------ */
+    var EGG_KEY = "dsh-claude-crab.egg";
+    var EGG_STREAK = 7;
+    var EGG_CHANCE = 0.05;
+    var EGG_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
+
+    /* The Anthropic radial starburst, viewBox 0 0 24 24. Same path the brand
+     * plugin paints into the sidebar -- copied rather than guessed, because a
+     * hand-approximated burst reads as a knock-off at a glance. */
+    var EGG_STARBURST = "m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z";
+
+    /* Read the cooldown stamp. Anything unreadable means "not on cooldown",
+     * which fails open: the worst case is the joke appearing when it could
+     * have stayed away, never a joke that can no longer appear at all. */
+    function eggLastSeen() {
+      try {
+        if (typeof localStorage === "undefined") return 0;
+        var raw = localStorage.getItem(EGG_KEY);
+        if (raw === null) return 0;
+        var t = parseInt(raw, 10);
+        return isFinite(t) && t > 0 ? t : 0;
+      } catch (e) { return 0; }
+    }
+
+    function eggOnCooldown() {
+      return Date.now() - eggLastSeen() < EGG_COOLDOWN_MS;
+    }
+
+    function eggStamp() {
+      try {
+        if (typeof localStorage !== "undefined") {
+          localStorage.setItem(EGG_KEY, String(Date.now()));
+        }
+      } catch (e) { /* storage blocked: the egg may reappear, which is fine */ }
+    }
 
     function readPrefs() {
       var out = {};
@@ -341,6 +564,7 @@ window.__ModuleLoader__.load({
           out.sleepyChance = Math.max(0, Math.min(1, parsed.sleepyChance));
         }
         if (typeof parsed.nuzzle === "boolean") out.nuzzle = parsed.nuzzle;
+        if (typeof parsed.mystery === "boolean") out.mystery = parsed.mystery;
         if (typeof parsed.size === "number" && isFinite(parsed.size)) {
           out.size = Math.max(0.5, Math.min(1.4, parsed.size));
         }
@@ -510,6 +734,23 @@ window.__ModuleLoader__.load({
             { className: "dcc-hint" },
             "开着时，六种反应里会有「蹭蹭」——整只往一侧蹭过来再弹回，并冒一颗爱心；" +
               "关掉就只剩另外五种。",
+          ),
+          h(
+            "label",
+            { className: "dcc-check" },
+            h("input", {
+              type: "checkbox",
+              checked: prefs.mystery,
+              onChange: function (e) { update({ mystery: e.target.checked }); },
+            }),
+            h("span", null, "神秘小开关"),
+          ),
+          /* The hint stays deliberately vague. Saying what the switch does
+           * would defuse the thing it switches on. */
+          h(
+            "div",
+            { className: "dcc-hint" },
+            "不知道是干什么的就别动它。关掉之后，有些事就不会发生了。",
           ),
         ),
 
@@ -900,6 +1141,242 @@ window.__ModuleLoader__.load({
         return bag.splice(Math.floor(Math.random() * bag.length), 1)[0];
       }
 
+      /* ---------------------------------------------------------------- *
+       * The suspension easter egg.
+       *
+       * Three pages, walked in order: the letter, the appeal form, the
+       * reveal. Each page is one function returning a card element; the
+       * state machine below swaps which one is on screen.
+       *
+       * Mounted on document.body rather than through a Cordis slot, for the
+       * same reason the crab itself mounts onto the composer: this is a
+       * transient overlay, and body is a contract that cannot go away.
+       * ---------------------------------------------------------------- */
+      var eggScrim = null;
+
+      function el(tag, cls, text) {
+        var n = document.createElement(tag);
+        if (cls) n.className = cls;
+        if (text !== undefined && text !== null) n.textContent = text;
+        return n;
+      }
+
+      function burstSvg(size) {
+        var NS = "http://www.w3.org/2000/svg";
+        var svg = document.createElementNS(NS, "svg");
+        svg.setAttribute("width", size);
+        svg.setAttribute("height", size);
+        svg.setAttribute("viewBox", "0 0 24 24");
+        svg.setAttribute("fill", "currentColor");
+        svg.setAttribute("aria-hidden", "true");
+        svg.setAttribute("class", "dcc-egg-burst");
+        var path = document.createElementNS(NS, "path");
+        path.setAttribute("d", EGG_STARBURST);
+        svg.appendChild(path);
+        return svg;
+      }
+
+      /* Page 1 -- the letter, as it actually lands in the inbox. No hint that
+       * it is a joke: the whole gag depends on this page being taken at face
+       * value for a beat. */
+      function eggPageLetter() {
+        var card = el("div", "dcc-egg-card");
+
+        var head = el("div", "dcc-egg-head");
+        head.appendChild(el("span", "dcc-egg-dot"));
+        head.appendChild(el("span", "dcc-egg-subj", "Your account has been suspended"));
+        head.appendChild(el("span", "dcc-egg-from", "Anthropic"));
+        card.appendChild(head);
+
+        var body = el("div", "dcc-egg-body");
+        body.appendChild(burstSvg(30));
+
+        body.appendChild(el("p", "dcc-egg-hello", "Hello,"));
+
+        var p1 = el("p");
+        p1.appendChild(document.createTextNode(
+          "An internal investigation of suspicious signals associated with your " +
+          "account indicates a violation of our "));
+        p1.appendChild(el("span", "dcc-egg-link", "Usage Policy"));
+        p1.appendChild(document.createTextNode(
+          ". As a result, we have revoked your access to Claude."));
+        body.appendChild(p1);
+
+        var p2 = el("p");
+        p2.appendChild(document.createTextNode("To appeal our decision, please fill out this "));
+        var form = el("span", "dcc-egg-link", "form");
+        form.setAttribute("role", "button");
+        form.setAttribute("tabindex", "0");
+        var goAppeal = function () { eggShow("appeal"); };
+        form.addEventListener("click", goAppeal);
+        form.addEventListener("keydown", function (e) {
+          if (e.key === "Enter" || e.key === " ") { e.preventDefault(); goAppeal(); }
+        });
+        p2.appendChild(form);
+        p2.appendChild(document.createTextNode(" or learn more about the appeals process "));
+        p2.appendChild(el("span", "dcc-egg-link", "here"));
+        p2.appendChild(document.createTextNode("."));
+        body.appendChild(p2);
+
+        var sig = el("p");
+        sig.appendChild(document.createTextNode("Regards"));
+        sig.appendChild(document.createElement("br"));
+        sig.appendChild(el("span", "dcc-egg-strong", "Anthropic's Safeguards"));
+        body.appendChild(sig);
+
+        card.appendChild(body);
+        return card;
+      }
+
+      /* Page 2 -- the appeal form. This is where the reminder belongs: the
+       * first page must not spoil itself, so the disclosure waits until the
+       * user has chosen to click through. */
+      function eggPageAppeal() {
+        var card = el("div", "dcc-egg-card");
+
+        var head = el("div", "dcc-egg-head");
+        head.appendChild(el("span", "dcc-egg-dot"));
+        head.appendChild(el("span", "dcc-egg-subj", "Appeal our decision"));
+        head.appendChild(el("span", "dcc-egg-from", "Anthropic"));
+        card.appendChild(head);
+
+        var body = el("div", "dcc-egg-body");
+        body.appendChild(el("h2", "dcc-egg-h2", "Appeal our decision"));
+        body.appendChild(el("p", "dcc-egg-sub",
+          "Help us understand which of the following signals you believe was misread."));
+        body.appendChild(el("div", "dcc-egg-label", "Suspicious signals detected"));
+
+        var list = el("ul", "dcc-egg-list");
+        var signals = [
+          ["账号位于", "中国境内", "（北纬 39.9°，东经 116.4°）"],
+          ["过去 30 天内，", "100%", " 的请求使用了中文"],
+          ["在第 47 轮对话中对模型说了", "「谢谢」", ""],
+          ["凌晨 3:14 仍处于活跃状态——", "我们有理由相信您是真的在用", ""],
+        ];
+        for (var i = 0; i < signals.length; i++) {
+          var li = el("li");
+          var label = el("label");
+          var input = document.createElement("input");
+          input.type = "checkbox";
+          label.appendChild(input);
+          label.appendChild(el("span", "dcc-egg-box"));
+          var txt = el("span");
+          txt.appendChild(document.createTextNode(signals[i][0]));
+          txt.appendChild(el("b", "dcc-egg-strong", signals[i][1]));
+          txt.appendChild(document.createTextNode(signals[i][2]));
+          label.appendChild(txt);
+          li.appendChild(label);
+          list.appendChild(li);
+        }
+        body.appendChild(list);
+
+        var foot = el("div", "dcc-egg-foot");
+        var submit = el("button", "dcc-egg-btn dcc-egg-primary", "提交申诉");
+        submit.type = "button";
+        submit.addEventListener("click", function () { eggShow("reveal"); });
+        var ok = el("button", "dcc-egg-btn", "我明白了");
+        ok.type = "button";
+        ok.addEventListener("click", function () { eggShow("reveal"); });
+        foot.appendChild(submit);
+        foot.appendChild(ok);
+        foot.appendChild(el("span", "dcc-egg-note", "通常 3–5 个工作日"));
+        body.appendChild(foot);
+
+        card.appendChild(body);
+        return card;
+      }
+
+      /* Page 3 -- the reveal, and the only page that admits what this is. */
+      function eggPageReveal() {
+        var card = el("div", "dcc-egg-card");
+
+        var body = el("div", "dcc-egg-body");
+        body.appendChild(el("div", "dcc-egg-eyebrow", "彩蛋 · 已揭晓"));
+        body.appendChild(el("h3", "dcc-egg-kicker", "……逗你的。"));
+        body.appendChild(el("p", "dcc-egg-sub",
+          "信是假的，申诉表也是。你不会真的被封号——至少不是因为刚才那四条。"));
+
+        var said = el("div", "dcc-egg-said");
+        var icon = el("div", "dcc-egg-crab");
+        var dot = el("i");
+        /* Scaled-down copy of the live sprite's rest frame. `--dcc-size` is not
+         * in scope inside the egg (it is set on the crab element), so the
+         * scale lives in the stylesheet rule above. */
+        dot.style.boxShadow = FRAMES.open;
+        icon.appendChild(dot);
+        said.appendChild(icon);
+        var words = el("p");
+        words.appendChild(el("b", "dcc-egg-strong", "Clawd："));
+        words.appendChild(document.createTextNode(
+          "我刚才是替你演的。你们用我的人，一半都收到过那封信。"));
+        said.appendChild(words);
+        body.appendChild(said);
+
+        var fine = el("p", "dcc-egg-fine");
+        fine.appendChild(el("b", null, "这是一个粉丝彩蛋。"));
+        fine.appendChild(document.createTextNode(
+          "与 Anthropic PBC 没有任何关系，也没有真的停用任何东西——所有数据都还在你自己的机器上。纯属自嘲。"));
+        body.appendChild(fine);
+
+        var foot = el("div", "dcc-egg-foot");
+        foot.style.marginTop = "20px";
+        var close = el("button", "dcc-egg-btn dcc-egg-primary", "回去戳蟹");
+        close.type = "button";
+        close.addEventListener("click", eggClose);
+        foot.appendChild(close);
+        body.appendChild(foot);
+
+        card.appendChild(body);
+        return card;
+      }
+
+      function eggShow(page) {
+        if (eggScrim === null) return;
+        var old = eggScrim.querySelector(".dcc-egg-card");
+        var next = page === "appeal" ? eggPageAppeal()
+          : page === "reveal" ? eggPageReveal()
+          : eggPageLetter();
+        if (old !== null) {
+          /* Keep the scrim and swap only the card, so the backdrop does not
+           * flicker between pages. */
+          eggScrim.replaceChild(next, old);
+        } else {
+          eggScrim.appendChild(next);
+        }
+        /* Focus the card rather than its first link. A programmatic focus
+         * after a mouse click is not :focus-visible, but the browser still
+         * paints a default ring on the focused element, and around a single
+         * word inside a sentence that reads as a bug. Focusing the card keeps
+         * the keyboard story intact (Tab reaches every control) with no ring. */
+        next.setAttribute("tabindex", "-1");
+        next.focus();
+      }
+
+      function eggClose() {
+        if (eggScrim !== null && eggScrim.parentNode) {
+          eggScrim.parentNode.removeChild(eggScrim);
+        }
+        eggScrim = null;
+        document.removeEventListener("keydown", eggKey, true);
+      }
+
+      function eggKey(e) {
+        if (e.key === "Escape") { e.preventDefault(); eggClose(); }
+      }
+
+      function eggOpen() {
+        if (eggScrim !== null) return;
+        eggStamp();
+
+        eggScrim = el("div", "dcc-egg-scrim");
+        eggScrim.setAttribute("role", "dialog");
+        eggScrim.setAttribute("aria-modal", "true");
+        eggScrim.setAttribute("aria-label", "Your account has been suspended");
+        document.body.appendChild(eggScrim);
+        document.addEventListener("keydown", eggKey, true);
+        eggShow("letter");
+      }
+
       function poke() {
         if (root === null || poked) return;
         noteActivity();
@@ -910,6 +1387,25 @@ window.__ModuleLoader__.load({
         var now = Date.now();
         pokeCount = now - pokeAt < 2600 ? pokeCount + 1 : 1;
         pokeAt = now;
+
+        /* The easter egg rolls here, and only here. Three gates, all of them
+         * needed: the streak must have reached seven, the 5% must land, and
+         * the week-long cooldown must have expired. Checking on the poke
+         * rather than on a timer keeps the surprise attached to the gesture
+         * that causes it. */
+        if (pokeCount >= EGG_STREAK && !eggOnCooldown() && readPrefs().mystery) {
+          if (Math.random() < EGG_CHANCE) {
+            /* Reset the streak so the roll does not repeat on every further
+             * poke of the same burst. */
+            pokeCount = 0;
+            /* `poked` is normally cleared by the animation timer below, which
+             * this early return skips -- without this the crab would stay
+             * locked out of every later poke. */
+            poked = false;
+            eggOpen();
+            return;
+          }
+        }
 
         /* One of six reactions rather than the same hop every time. The bag is
          * shuffled so the same one never lands twice running; the reactions are
@@ -1086,6 +1582,9 @@ window.__ModuleLoader__.load({
         /* Recurring timers live outside `timers`, so they need their own stop
          * or the tick would keep firing against a detached crab. */
         stopRecurring();
+        /* An open egg outlives the crab unless it is closed here: the scrim
+         * lives on document.body, not inside `root`. */
+        eggClose();
         if (root !== null && root.parentNode) root.parentNode.removeChild(root);
         root = null; pxEl = null; animEl = null; sayEl = null;
         poked = false; blinkOn = false;
@@ -1143,6 +1642,21 @@ window.__ModuleLoader__.load({
         document.head.appendChild(el);
         return function () { if (el.parentNode) el.parentNode.removeChild(el); };
       }, "dsh-claude-crab:settings-styles");
+
+      /* The egg's sheet is separate from the crab's own: if it ever fails to
+       * inject, the crab keeps working and the joke simply never shows. */
+      ctx.effect(function () {
+        var el = document.createElement("style");
+        el.setAttribute("data-dcc-egg", "dsh-claude-crab");
+        el.textContent = EGG_CSS;
+        document.head.appendChild(el);
+        return function () {
+          if (el.parentNode) el.parentNode.removeChild(el);
+          /* A page unload with the egg open would otherwise leave the scrim
+           * behind, since it lives on body rather than inside the crab. */
+          eggClose();
+        };
+      }, "dsh-claude-crab:egg-styles");
 
       var slots = ctx.get("slots");
       if (slots === undefined) return;
