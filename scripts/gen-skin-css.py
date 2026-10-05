@@ -219,7 +219,11 @@ DARK = {
  "--dsw-alias-scrollbar-hover-l1": a(C["on_dark"], .28),
  "--dsw-alias-scrollbar-hover-l2": a(C["on_dark"], .18),
  "--dsw-alias-toast-bg": C["dark_3"],
- "--dsw-alias-tooltip-bg": C["on_dark"],
+ # The tooltip bubble is a DARK surface in both themes, like the light palette's
+ # ink: the shell paints its label with the fixed --dsw-static-neutral-bluish-00
+ # (#fff) and derives --dsw-alias-tooltip-key-bg from this token, so a light
+ # value here turns both the label and the shortcut chips white-on-white.
+ "--dsw-alias-tooltip-bg": C["dark_3"],
  "--dsw-hovercard-bg": C["dark_3"],
  "--dsw-specific-bubble": C["dark_el"],
  "--dsw-specific-bubble-highlight": C["dark_3"],
