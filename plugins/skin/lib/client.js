@@ -392,6 +392,436 @@ window.__ModuleLoader__.load({
 
 		var STYLE_ID = "dsh-claude-skin:styles";
 
+		/* ==================================================================
+		 * "Request fingerprint" -- the second easter egg.
+		 *
+		 * This is a joke about the June 2026 Claude Code finding: CC silently
+		 * classified requests by reading the system time zone, and hid the
+		 * verdict in the system prompt by swapping one character -- the
+		 * apostrophe in "Today's" became U+2019, and the date separator turned
+		 * from "-" into "/". Nobody could see it; that was the point.
+		 *
+		 * The reconstruction here is faithful to the published analysis:
+		 *
+		 *     let cnTZ = timezone === "Asia/Shanghai" || timezone === "Asia/Urumqi";
+		 *     let rendered = cnTZ ? date.replaceAll("-", "/") : date;
+		 *     `Today${apostrophe}s date is ${rendered}.`
+		 *
+		 * Two deliberate departures, both for the joke:
+		 *
+		 *   1. The value written into the box is always `Asia/Shanghai`,
+		 *      whatever the machine actually reports. That is the whole gag --
+		 *      CC decided where you were from a setting you never chose, so
+		 *      this decides for you too. The panel shows both, so the real
+		 *      zone is never hidden from you.
+		 *   2. Nothing leaves the page. Every value comes from `Intl`, which
+		 *      the browser hands to any script, and the result is only drawn.
+		 *      No request is made and no storage is written beyond the
+		 *      cooldown stamp.
+		 *
+		 * The switch is shared with the crab's easter egg on purpose: both are
+		 * the same kind of joke, so one switch turns both off. They keep
+		 * separate cooldowns so neither can eat the other's turn.
+		 * ================================================================== */
+
+		var EGG_STORE = "dsh-claude-skin.egg";        /* cooldown stamp */
+		var EGG_SWITCH_KEY = "dsh-claude-crab.prefs"; /* the shared switch */
+		var EGG_SWITCH_FIELD = "mystery";
+		var EGG_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
+		var EGG_TRIGGER = "TZ=";
+		var EGG_TZ = "Asia/Shanghai";
+
+		/** The shared switch. Absent or unreadable means on, matching the crab. */
+		function eggEnabled() {
+			try {
+				if (typeof localStorage === "undefined") return true;
+				var raw = localStorage.getItem(EGG_SWITCH_KEY);
+				if (raw === null) return true;
+				var parsed = JSON.parse(raw);
+				if (parsed && typeof parsed[EGG_SWITCH_FIELD] === "boolean") {
+					return parsed[EGG_SWITCH_FIELD];
+				}
+				return true;
+			} catch (e) { return true; }
+		}
+
+		function eggOnCooldown() {
+			try {
+				if (typeof localStorage === "undefined") return false;
+				var raw = localStorage.getItem(EGG_STORE);
+				if (raw === null) return false;
+				var t = parseInt(raw, 10);
+				return isFinite(t) && t > 0 && Date.now() - t < EGG_COOLDOWN_MS;
+			} catch (e) { return false; }
+		}
+
+		function eggStamp() {
+			try {
+				if (typeof localStorage !== "undefined") {
+					localStorage.setItem(EGG_STORE, String(Date.now()));
+				}
+			} catch (e) { /* storage blocked: it may reappear, which is harmless */ }
+		}
+
+		/** What the machine actually reports. Nothing else is consulted. */
+		function realTimeZone() {
+			try {
+				return Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+			} catch (e) { return ""; }
+		}
+
+		/**
+		 * The apostrophe CC picked, from the published `edp()`:
+		 * `'` when nothing matched, `U+2019` for a known gateway host,
+		 * `U+02BC` for a lab keyword, `U+02B9` for both. Only the time-zone
+		 * branch is reproduced here, so the plain and cnTZ cases are the two
+		 * that can occur.
+		 */
+		function apostropheFor(cnTZ) {
+			return cnTZ ? "\u2019" : "'";
+		}
+
+		/** `Today’s date is 2026/10/06.` -- with the real substitution applied. */
+		function fingerprintLine(cnTZ) {
+			var now = new Date();
+			var iso = now.getFullYear() + "-" +
+				String(now.getMonth() + 1).padStart(2, "0") + "-" +
+				String(now.getDate()).padStart(2, "0");
+			var rendered = cnTZ ? iso.replace(/-/g, "/") : iso;
+			return "Today" + apostropheFor(cnTZ) + "s date is " + rendered + ".";
+		}
+
+		/** Human name for one Unicode scalar, for the panel's code-point row. */
+		function codePointOf(ch) {
+			var n = ch.codePointAt(0);
+			return "U+" + n.toString(16).toUpperCase().padStart(4, "0");
+		}
+
+		var EGG_CSS = [
+			".dcs-fp{position:fixed;inset:0;z-index:2147483000;display:flex;",
+			"align-items:center;justify-content:center;padding:20px;overflow:auto;",
+			"background:rgba(20,20,19,.34);-webkit-backdrop-filter:blur(10px);",
+			"backdrop-filter:blur(10px);",
+			"font-family:var(--dsw-font-family,-apple-system,sans-serif)}",
+
+			".dcs-fp-card{width:100%;max-width:520px;",
+			"background:var(--dsw-alias-bg-overlay,#faf9f5);",
+			"color:var(--dsw-alias-label-primary,#141413);",
+			"border:1px solid var(--dsw-alias-border-l2,#e6dfd8);border-radius:12px;",
+			"overflow:hidden;box-shadow:0 30px 70px -16px rgba(0,0,0,.34)}",
+
+			".dcs-fp-head{display:flex;align-items:center;gap:9px;padding:12px 20px;",
+			"border-bottom:1px solid var(--dsw-alias-border-l1,#ebe6df);font-size:13px;",
+			"font-weight:500}",
+
+			".dcs-fp-dot{width:7px;height:7px;border-radius:50%;flex:none;",
+			"background:var(--dsw-alias-brand-primary,#d97757)}",
+
+			".dcs-fp-body{padding:18px 20px 20px}",
+
+			/* The prompt line is the payload, so it gets the monospace treatment. */
+			".dcs-fp-code{font-family:'JetBrains Mono',ui-monospace,monospace;",
+			"font-size:13px;line-height:1.75;padding:14px 16px;border-radius:8px;",
+			"background:var(--dsw-alias-bg-layer-1,#f5f0e8);",
+			"border:1px solid var(--dsw-alias-border-l1,#ebe6df);",
+			"white-space:pre-wrap;overflow-wrap:anywhere}",
+
+			".dcs-fp-rows{margin-top:14px;font-size:13px;line-height:1.9;",
+			"font-family:'JetBrains Mono',ui-monospace,monospace}",
+
+			".dcs-fp-row{display:flex;gap:10px}",
+			".dcs-fp-key{width:112px;flex:none;",
+			"color:var(--dsw-alias-label-tertiary,#8a8781)}",
+			".dcs-fp-val{color:var(--dsw-alias-label-primary,#141413)}",
+
+			/* The point of the whole panel: the two apostrophes look identical. */
+			".dcs-fp-mark{padding:0 4px;border-radius:3px;",
+			"background:var(--dsw-alias-brand-primary,#d97757);color:#fff}",
+
+			".dcs-fp-note{margin-top:16px;padding-top:13px;font-size:12px;line-height:1.6;",
+			"border-top:1px solid var(--dsw-alias-border-l1,#ebe6df);",
+			"color:var(--dsw-alias-label-tertiary,#8a8781)}",
+
+			".dcs-fp-btn{margin-top:16px;font:inherit;font-size:13.5px;font-weight:500;",
+			"padding:8px 18px;border-radius:999px;cursor:pointer;border:0;",
+			"background:var(--dsw-alias-brand-primary,#d97757);color:#fff}",
+
+			/* Clawd, perched on the card's top edge.
+			 *
+			 * The sprite is the real one: the same 16x12 dot matrix the crab
+			 * plugin paints, drawn the same way (box-shadow on a 3px cell), so
+			 * it is unmistakably the same character rather than a lookalike.
+			 *
+			 * It hangs off the TOP of a wrapper rather than sitting inside the
+			 * card: the card clips its own rounded corners with
+			 * `overflow:hidden`, so a sprite inside it loses its head. The
+			 * wrapper is positioned to match the card and lets the crab spill
+			 * upward; the legs that overlap the card are covered by the card
+			 * itself, which is what makes it read as gripping the edge.
+			 *
+			 * `top` is half the sprite, so the visible half is the head and
+			 * the claws; the lower body sits behind the card. */
+			".dcs-fp-perch{position:absolute;top:-18px;left:28px;width:48px;height:36px;",
+			"pointer-events:none;z-index:2;",
+			"--fp-crab-body:var(--dsw-alias-brand-primary,#d97757);",
+			"--fp-crab-eye:var(--dsw-alias-bg-overlay,#faf9f5)}",
+
+			/* The card and its passenger, sized together so the crab's offset is
+			 * measured against the same box the card occupies. */
+			".dcs-fp-stack{position:relative;width:100%;max-width:520px}",
+
+			".dcs-fp-perch i{position:absolute;left:0;top:0;width:3px;height:3px;",
+			"background:transparent;transform-origin:0 0;transform:scale(1)}",
+
+			/* A slow lean, as if it is reading the panel over your shoulder. */
+			"@keyframes dcs-fp-lean{",
+			"0%,100%{transform:rotate(-2deg) translateY(0)}",
+			"50%{transform:rotate(2.5deg) translateY(-1px)}}",
+
+			".dcs-fp-perch{animation:dcs-fp-lean 3.4s ease-in-out infinite;",
+			"transform-origin:center bottom}",
+
+			"@media (prefers-reduced-motion:reduce){.dcs-fp-perch{animation:none}}",
+		].join("");
+
+		var fpScrim = null;
+
+		/* ------------------------------------------------------------------
+		 * Clawd, for the panel's edge.
+		 *
+		 * Copied from the crab plugin's FRAMES.open, cell for cell: the same
+		 * 16x12 dot matrix on the same 3px grid, painted as box-shadow so it
+		 * needs no image. It is duplicated rather than imported because the
+		 * two plugins deliberately share no module scope -- the record in
+		 * localStorage is their only channel, and reaching across for one
+		 * sprite would couple a skin to a pet.
+		 *
+		 * '.' empty, '#' body, 'E' eye. FRAMES.open, verbatim.
+		 * ------------------------------------------------------------------ */
+		var FP_CRAB = [
+			"................",
+			"................",
+			"..############..",
+			"..############..",
+			"..##E######E##..",
+			"..##E######E##..",
+			"..############..",
+			"################",
+			"################",
+			"..############..",
+			"...#.#....#.#...",
+			"...#.#....#.#...",
+		];
+		var FP_CELL = 3;
+
+		/** Build the crab: two stacked cells, body under eyes. */
+		function fpCrab() {
+			var host = fpEl("div", "dcs-fp-perch");
+			host.setAttribute("aria-hidden", "true");
+			var body = [], eye = [];
+			for (var y = 0; y < FP_CRAB.length; y++) {
+				for (var x = 0; x < FP_CRAB[y].length; x++) {
+					var ch = FP_CRAB[y][x];
+					if (ch === ".") continue;
+					/* The frame's own art starts two rows down; keeping the
+					 * offset means the crab sits at the same height here as it
+					 * does in the composer. */
+					var v = (x * FP_CELL) + "px " + ((y - 2) * FP_CELL) + "px 0 .3px ";
+					if (ch === "E") eye.push(v + "var(--fp-crab-eye)");
+					else body.push(v + "var(--fp-crab-body)");
+				}
+			}
+			var mk = function (list) {
+				var i = fpEl("i");
+				i.style.boxShadow = list.join(",");
+				return i;
+			};
+			host.appendChild(mk(body));
+			host.appendChild(mk(eye));
+			return host;
+		}
+
+		/* Recording mode, off by default. While on, the cooldown neither blocks
+		 * the trigger nor records a visit, so `TZ=` can be demonstrated again
+		 * and again without waiting a week or leaving state behind. Off the
+		 * console it cannot be reached: the helper below is the only switch. */
+		var fpRecording = false;
+
+		function fpEl(tag, cls, text) {
+			var n = document.createElement(tag);
+			if (cls) n.className = cls;
+			if (text !== undefined && text !== null) n.textContent = text;
+			return n;
+		}
+
+		function fpRow(key, value, highlight) {
+			var row = fpEl("div", "dcs-fp-row");
+			row.appendChild(fpEl("span", "dcs-fp-key", key));
+			var val = fpEl("span", "dcs-fp-val");
+			if (highlight) {
+				var mark = fpEl("span", "dcs-fp-mark", value);
+				val.appendChild(mark);
+			} else {
+				val.textContent = value;
+			}
+			row.appendChild(val);
+			return row;
+		}
+
+		function fpClose() {
+			if (fpScrim !== null && fpScrim.parentNode) {
+				fpScrim.parentNode.removeChild(fpScrim);
+			}
+			fpScrim = null;
+			document.removeEventListener("keydown", fpKey, true);
+		}
+
+		function fpKey(e) {
+			if (e.key === "Escape") { e.preventDefault(); fpClose(); }
+		}
+
+		/**
+		 * Draw the panel. `force` skips both the switch and the cooldown, which
+		 * is what the console helper uses while the joke is being recorded.
+		 */
+		function fpOpen(force) {
+			if (fpScrim !== null) return false;
+			if (!force) {
+				if (!eggEnabled()) return false;
+				/* Recording mode disables the cooldown so the joke can be
+				 * demonstrated repeatedly. It does NOT stamp, so turning it
+				 * off leaves the real cooldown untouched. */
+				if (!fpRecording && eggOnCooldown()) return false;
+			}
+			if (!fpRecording) eggStamp();
+
+			var real = realTimeZone();
+			/* The joke decides; the panel reports. */
+			var cnTZ = EGG_TZ === "Asia/Shanghai" || EGG_TZ === "Asia/Urumqi";
+			var apos = apostropheFor(cnTZ);
+
+			fpScrim = fpEl("div", "dcs-fp");
+			fpScrim.setAttribute("role", "dialog");
+			fpScrim.setAttribute("aria-modal", "true");
+			fpScrim.setAttribute("aria-label", "Request fingerprint");
+
+			var card = fpEl("div", "dcs-fp-card");
+
+			var head = fpEl("div", "dcs-fp-head");
+			head.appendChild(fpEl("span", "dcs-fp-dot"));
+			head.appendChild(fpEl("span", null, "Request fingerprint"));
+			card.appendChild(head);
+
+			var body = fpEl("div", "dcs-fp-body");
+
+			/* The system-prompt line, with the real substitution applied. */
+			body.appendChild(fpEl("div", "dcs-fp-code", fingerprintLine(cnTZ)));
+
+			var rows = fpEl("div", "dcs-fp-rows");
+			rows.appendChild(fpRow("timeZone", real || "(unavailable)"));
+			rows.appendChild(fpRow("TZ", EGG_TZ));
+			rows.appendChild(fpRow("cnTZ", String(cnTZ)));
+			rows.appendChild(fpRow("apostrophe", apos + "  " + codePointOf(apos), true));
+			rows.appendChild(fpRow("dateSep", cnTZ ? "- \u2192 /" : "- (unchanged)"));
+			body.appendChild(rows);
+
+			body.appendChild(fpEl("div", "dcs-fp-note",
+				"Read locally from Intl. Nothing was sent anywhere, and nothing " +
+				"was written outside this browser."));
+
+			var close = fpEl("button", "dcs-fp-btn", "知道了");
+			close.type = "button";
+			close.addEventListener("click", fpClose);
+			body.appendChild(close);
+
+			card.appendChild(body);
+
+			/* The crab rides just outside the card, because the card clips its
+			 * own rounded corners with `overflow:hidden` and a sprite inside
+			 * would lose its head. Sharing one positioned wrapper gives the
+			 * crab an offset measured against the card's top edge. */
+			var stack = fpEl("div", "dcs-fp-stack");
+			stack.appendChild(fpCrab());
+			stack.appendChild(card);
+
+			fpScrim.appendChild(stack);
+			document.body.appendChild(fpScrim);
+			document.addEventListener("keydown", fpKey, true);
+			close.focus();
+			return true;
+		}
+
+		/**
+		 * Console helper, for recording the joke without waiting out a
+		 * week-long cooldown:
+		 *
+		 *   __claudeFootprint()          show it now
+		 *   __claudeFootprint.record()   let `TZ=` fire every time, no cooldown
+		 *   __claudeFootprint.stop()     back to normal
+		 *   __claudeFootprint.reset()    clear the cooldown stamp
+		 *
+		 * Deliberately not surfaced in any settings page: the easter egg should
+		 * not advertise itself, and this is a recording aid, not a feature.
+		 */
+		function installFootprintHelper() {
+			if (typeof window === "undefined") return;
+			var helper = function () { return fpOpen(true); };
+			helper.record = function () { fpRecording = true; return "recording"; };
+			helper.stop = function () { fpRecording = false; return "normal"; };
+			helper.reset = function () {
+				try {
+					if (typeof localStorage !== "undefined") {
+						localStorage.removeItem(EGG_STORE);
+					}
+				} catch (e) { /* nothing to clear */ }
+				return "cleared";
+			};
+			helper.show = helper;
+			window.__claudeFootprint = helper;
+		}
+
+		/* ------------------------------------------------------------------
+		 * The trigger.
+		 *
+		 * Rides the official session slot so the draft can be read and written
+		 * through the documented `useInput` / `inputActions` pair rather than
+		 * by poking at the Lexical editor. The component renders nothing; it
+		 * exists to receive those two values.
+		 * ------------------------------------------------------------------ */
+		function FootprintWatcher(props) {
+			/* `conversation.input.left` is a session-scope slot, so the renderer
+			 * always hands it SessionStandardProps -- `useInput` and
+			 * `inputActions` are part of the contract, not optional extras.
+			 * They are called unconditionally because a hook behind a
+			 * conditional changes the call order between renders, and React
+			 * throws when that happens. */
+			var draft = props.useInput(function (s) { return s.draft; });
+			var actions = props.inputActions;
+			/* Remembers the previous draft text rather than a one-shot flag, so
+			 * clearing the box and typing the trigger again fires again. A
+			 * flag would make the joke a once-per-page-load event and there
+			 * would be no way to demonstrate it twice. */
+			var last = React.useRef(null);
+
+			React.useEffect(function () {
+				if (!actions) return;
+				if (typeof draft !== "string") return;
+				var was = last.current;
+				last.current = draft;
+				if (draft.trim() !== EGG_TRIGGER) return;
+				/* Only on the transition into the bare trigger, so the setDraft
+				 * below (which changes the draft again) cannot re-enter. */
+				if (was !== null && was.trim() === EGG_TRIGGER) return;
+				var ok = fpOpen(false);
+				if (ok) {
+					/* Write the value in, as if the shell had completed it. */
+					actions.setDraft(EGG_TRIGGER + EGG_TZ);
+				}
+			});
+
+			return null;
+		}
+
 		function apply(ctx) {
 			ctx.effect(function () {
 				var el = document.createElement("style");
@@ -403,8 +833,36 @@ window.__ModuleLoader__.load({
 				};
 			}, "dsh-claude-skin:styles");
 
+			/* The fingerprint panel's own sheet, separate from the skin's so a
+			 * failure to inject it cannot take the skin down with it. */
+			ctx.effect(function () {
+				var el = document.createElement("style");
+				el.id = "dsh-claude-skin:fingerprint";
+				el.textContent = EGG_CSS;
+				document.head.appendChild(el);
+				return function () {
+					if (el.parentNode) el.parentNode.removeChild(el);
+					fpClose();
+				};
+			}, "dsh-claude-skin:fingerprint-styles");
+
+			installFootprintHelper();
+
 			var slots = ctx.get("slots");
 			if (slots === undefined) return;
+
+			/* The watcher is a list-slot entry that renders nothing: it takes
+			 * the session's input actions and draft, and no visible seat. */
+			slots.inject("conversation.input.left", function () {
+				try {
+					return slots.register(
+						{ name: "conversation.input.left", id: "claude-fingerprint" },
+						FootprintWatcher,
+					);
+				} catch (e) {
+					return function () {};
+				}
+			});
 
 			/* One settings page holds both the skin and the display name. The
 			 * name used to be its own section; it is a property of this skin's
