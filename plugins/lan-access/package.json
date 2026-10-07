@@ -1,0 +1,39 @@
+{
+  "name": "dsh-lan-access",
+  "version": "0.1.0",
+  "description": "同一局域网内用手机浏览器控制这台机器：侧栏底部的手机图标给出一个带凭证的网址二维码，扫码即用。",
+  "license": "MIT",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "type": "module",
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-renderer"
+      ]
+    }
+  },
+  "author": "aklnaaw",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aklnaaw/dsh-claude-theme.git",
+    "directory": "plugins/lan-access"
+  },
+  "homepage": "https://github.com/aklnaaw/dsh-claude-theme#readme",
+  "bugs": {
+    "url": "https://github.com/aklnaaw/dsh-claude-theme/issues"
+  }
+}

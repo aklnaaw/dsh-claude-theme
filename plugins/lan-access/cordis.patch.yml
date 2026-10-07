@@ -1,0 +1,5 @@
+# dsh-lan-access bundle patch: inserts its dshClient row into the web roster.
+# Install the bundle with `dsh plugin --profile <name> add <path-or-git-url>`.
+- insert:
+    - id: lan-access
+      name: dsh-lan-access
