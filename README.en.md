@@ -14,29 +14,37 @@ The repo holds five things. Each installs on its own, and none of them gets in a
 | | What it is |
 | --- | --- |
 | **Skin** `claude/` | Colours, fonts, rounded corners. The skin itself. |
-| **Skin plugin** `plugins/skin/` | Lets you use the skin without the skin center. |
-| **Claude plugin** `brand-plugin/` | The starburst mark and wordmark in the sidebar, the home-page greeting, the browser title and icon. |
+| **Skin plugin** `plugins/skin/` | Loads the skin without the skin center; also provides the **Claude-X** settings page. |
+| **Claude plugin** `brand-plugin/` | The starburst mark and wordmark in the sidebar, the home-page greeting, the browser title and icon, the loading animation. |
 | **Clawd plugin** `crab-plugin/` | The pokeable pixel crab on the composer edge. |
 | **Font-switcher plugin** `plugins/font-switcher/` | Swaps out the three font groups the skin uses. |
 
-### The skin installs two ways
-
-**One: through the skin center.** If you already run `@linxin666/dsh-client-ui-skin-center`, search for Claude in its marketplace and install it — no manual copying. Then pick it in Settings.
-
-**Two: through the standalone plugin.** If you would rather not install a whole skin center for one skin, install `plugins/skin/`. It **installs the skin for you**: on first load it copies the repository's `claude/` into `$DSH_HOME/skins/claude`, so after a restart you just pick Claude in **Settings → Claude-X**. It does only the skin's job — reads the directory, puts the stylesheet on the page, hands over the fonts and images — without the background images, marketplace or wallpaper features.
-
-**Don't install both** — each would send the same stylesheet to the page.
-
 ### Between them
 
-The four plugins each mind their own business: separate settings pages (skin → **Claude-X**, crab → **Clawd**, fonts → **Fonts**) and separate saved data. Just two small overlaps:
+Five things, each minding its own business: the settings pages are separate
+(skin and brand appearance on **Claude-X**, crab on **Clawd**, fonts on
+**Fonts**). Two things are **shared**, both the same shape — **the data belongs
+to the brand plugin, the UI can come from two places**:
 
-- The name, caption and avatar editor sits on the skin plugin's Claude-X page — it's part of that skin's look. The data itself belongs to the brand plugin, so with only the brand plugin installed you rename through the row at the foot of the sidebar.
-- The font-switcher follows the current skin. No skin, nothing to swap.
+- The **name, caption and avatar** live in `dsh-claude-brand.prefs`. The popover
+  at the foot of the sidebar and the Claude-X page both edit it, and a change in
+  one shows up in the other at once.
+- The **loading animation** (starburst / crab / off) is in that same record; it
+  is picked on the Claude-X page.
 
-Plugins without the skin still look right, just in the stock theme colours. The skin without the plugins means no starburst and no crab, but the colours, fonts and the pixel sparkle by the greeting are all there.
+Two plugins cannot share a module scope, so the arrangement is: **localStorage
+is the shared state, a window event is the shared notification** — whoever
+writes broadcasts, whoever displays listens. With only the brand plugin
+installed, its own popover is the only entry point.
 
-**Why the brand swap isn't part of the skin**: skins can't run the official hooks (see [Limitations](#limitations)), and swapping a logo is plugin work.
+The font-switcher follows the current skin. No skin, nothing to swap.
+
+Plugins without the skin still look right, just in the stock theme colours. The
+skin without the plugins means no starburst, no loading animation and no crab,
+but the colours, fonts and the pixel sparkle by the greeting are all there.
+
+**Why the brand swap isn't part of the skin**: skins can't run the official
+hooks (see [Limitations](#limitations)), and swapping a logo is plugin work.
 
 ---
 
@@ -58,6 +66,7 @@ Screenshots of the real running UI. The light canvas is warm cream, the dark one
 - **Fonts included** — four font files inside the skin directory; nothing is fetched from outside.
 - **Third-party plugins blend in** — other plugins' UI gets a neutral coat so it follows Claude's card style instead of clashing.
 - **Your name and avatar** — a row at the foot of the sidebar; click to edit in place. A fresh install shows `moon` and a built-in avatar, stored only in this browser.
+- **Swappable loading animation** — the icon beside "deep diving" has three choices: **starburst** (eight looping shapes, one 15.55s cycle), **crab** (the pixel crab at a keyboard), or **off** (keep the stock blue whale). Starburst by default, picked in **Settings → Claude-X**.
 - **Rotating greeting** — 24 lines, one per page load, the first always a time-of-day greeting, carrying your name.
 - **Live switching** — through the skin center, swapping skins needs no reload; through the standalone plugin, reload once after switching.
 
@@ -126,6 +135,31 @@ On first load the plugin copies the repository's `claude/` into `$DSH_HOME/skins
 
 (You can still place the skin by hand if you prefer: `cp -r claude "$HOME/.dsh/skins/claude"`. The plugin only fills in missing files — it never overwrites what is already there.)
 
+**Don't install both** — each would send the same stylesheet to the page.
+
+#### What the skin center does not give you
+
+The skin center **takes CSS only, no plugins**, so the copy it loads contains no
+JavaScript at all. Everything below needs a plugin and **will not be there if you
+install through the skin center**:
+
+| Feature | Needs |
+| --- | --- |
+| Sidebar starburst mark and "Claude" wordmark | `brand-plugin` |
+| Display name, subtitle, avatar | `brand-plugin` |
+| Turning the sidebar foot row off | `brand-plugin` |
+| The loading animation beside "deep diving" (crab / starburst / off) | `brand-plugin` |
+| Font switching | `plugins/font-switcher` |
+
+Install either or both: **`brand-plugin` on its own is enough** — renaming and the
+avatar live in the popover on the sidebar's bottom row. Adding `plugins/skin`
+also gives you the **Settings → Claude-X** page where every switch above lives.
+
+```bash
+dsh plugin --profile web add <path-to-repo>/brand-plugin
+dsh plugin --profile web add <path-to-repo>/plugins/skin
+```
+
 ### 2. The Claude plugin
 
 ```bash
@@ -169,7 +203,6 @@ Troubleshooting, verification and rollback for every step are in [`INSTALL.md`](
 - **The pet-panel crab doesn't move.** The pet system wants a nine-frame animation sheet, but the crab only has one static pose, so all nine cells are the same crab in different tints. Real animation needs actual art.
 - **The crab skips the official slot system.** It used to go through it, and it went badly: errors got swallowed, the plugin loaded but no crab appeared, and nothing was logged. It now mounts straight onto the composer. The cost: if the official marker for that spot ever changes, the crab disappears — but you'll get a console warning, not silence.
 - **The skin no longer draws its own crab.** It used to carry a static one that fought with the plugin's crab (two crabs, or none), so it was removed. The crab lives only in the plugin now — skin without plugin means no crab.
-- **The preview images are real screenshots**, one per mode.
 - **The skin only applies while selected.** Everything is scoped inside the skin's own namespace, so other skins don't pick it up. Both install routes behave this way.
 
 ---

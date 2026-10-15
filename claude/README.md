@@ -38,18 +38,49 @@ UI at 1920x1080, one per mode, with canvas colours matching the design values.
 ## The full version lives in the project repository
 
 This directory contains the skin only. The full version — the skin source plus
-two **optional** plugins — lives at
+three **optional** plugins — lives at
 <https://github.com/aklnaaw/dsh-claude-theme>:
 
-- **The Claude plugin** replaces the sidebar whale mark and brand wordmark with
-  the Claude starburst and wordmark, adds a browser tab icon, and provides an
-  editable display name and avatar in Settings.
-- **The Clawd plugin** puts a clickable pixel crab on the composer's upper edge:
-  its eyes follow the pointer, it blinks when idle, and poking it makes it jump
-  and say something.
+- **The Claude plugin** (`brand-plugin`): replaces the sidebar whale mark and
+  brand wordmark with the Claude starburst and wordmark, adds a browser tab icon,
+  provides an editable display name and avatar, and offers a **three-way choice
+  of loading animation** (starburst / crab / off).
+- **The skin plugin** (`plugins/skin`): loads the skin without the skin center,
+  and provides the **Settings → Claude-X** page where those switches live.
+- **The Clawd plugin** (`crab-plugin`): a clickable pixel crab on the composer's
+  upper edge — its eyes follow the pointer, it blinks when idle, and poking it
+  makes it jump and say something.
 
-Neither goes through the skin center; both are ordinary Cordis client plugins,
-with installation notes and screenshots in that repository's README.
+### The skin center cannot deliver these
+
+The skin center **takes CSS only, no plugins**, so the copy it loads contains no
+JavaScript at all. Everything below needs a plugin and **will not be there if you
+install through the skin center**:
+
+| Feature | Needs |
+| --- | --- |
+| Sidebar starburst mark and "Claude" wordmark | `brand-plugin` |
+| Display name, subtitle, avatar | `brand-plugin` |
+| Turning the sidebar foot row off | `brand-plugin` |
+| The loading animation beside "deep diving" | `brand-plugin` |
+| Font switching | `plugins/font-switcher` |
+
+`brand-plugin` alone is enough to start: renaming and the avatar live in the
+popover on the sidebar's bottom row. Adding `plugins/skin` also gives you the
+**Settings → Claude-X** page, where every switch above lives alongside the skin
+picker.
+
+```bash
+dsh plugin --profile web add <path-to-repo>/brand-plugin
+dsh plugin --profile web add <path-to-repo>/plugins/skin
+```
+
+Installation notes and screenshots are in that repository's README.
+
+**About the loading animation.** The star-shaped artwork in that feature belongs
+to Anthropic and is cited here as non-official fan homage. It has nothing to do
+with this directory (plain CSS assets); it ships in a plugin in the main
+repository.
 
 ## Source and copyright
 

@@ -24,6 +24,11 @@ window.__ModuleLoader__.load({
 		var PREFS_KEY = "dsh-claude-brand.prefs";
 		var PREFS_EVENT = "dsh-claude-brand:prefs";
 
+		/* Which mark the running indicator uses. Declared here as well as in the
+		 * brand plugin because the two cannot share a module scope; the values
+		 * have to agree or a choice made here would be rejected on write. */
+		var ICON_STYLES = ["spark", "crab", "off"];
+
 		/** What the greeting shows before anyone has chosen a name. */
 		var DEFAULT_NAME = "moon";
 
@@ -91,6 +96,12 @@ window.__ModuleLoader__.load({
 			".dcs-mini:hover{background:var(--dsw-alias-interactive-bg-hover)}",
 			".dcs-toggle{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--dsw-alias-label-primary)}",
 			".dcs-toggle input{accent-color:var(--dsw-alias-brand-primary)}",
+			/* A three-way choice, so radios rather than a checkbox. Laid out as
+			 * a row of equally-weighted labels so the options read as peers. */
+			".dcs-choices{display:flex;flex-wrap:wrap;gap:14px}",
+			".dcs-choice{display:flex;align-items:center;gap:7px;cursor:pointer;",
+			"font-size:13px;color:var(--dsw-alias-label-primary)}",
+			".dcs-choice input{accent-color:var(--dsw-alias-brand-primary);cursor:pointer}",
 		].join("");
 
 		/* ------------------------------------------------------------------
@@ -127,6 +138,10 @@ window.__ModuleLoader__.load({
 			if (typeof patch.sub === "string") next.sub = patch.sub.slice(0, 32);
 			if (typeof patch.avatar === "string") next.avatar = patch.avatar;
 			if (typeof patch.showProfile === "boolean") next.showProfile = patch.showProfile;
+			/* The list must name every field the page edits. Anything absent is
+			 * dropped here even though the caller supplied it, which is silent --
+			 * the radio would move and the icon would not change. */
+			if (ICON_STYLES.indexOf(patch.iconStyle) !== -1) next.iconStyle = patch.iconStyle;
 			try {
 				if (typeof localStorage !== "undefined") {
 					localStorage.setItem(PREFS_KEY, JSON.stringify(next));
@@ -385,6 +400,38 @@ window.__ModuleLoader__.load({
 						"div",
 						{ className: "dcs-hint" },
 						"关掉后侧栏底部就不放这行了；名字和头像的数据还在，随时能开回来。",
+					),
+				),
+
+				h(
+					"div",
+					{ className: "dcs-row" },
+					h("div", { className: "dcs-lbl" }, "加载动画"),
+					h(
+						"div",
+						{ className: "dcs-choices" },
+						[
+							{ id: "spark", label: "星芒", hint: "Claude 的八种形态轮播" },
+							{ id: "crab", label: "螃蟹", hint: "敲键盘的像素蟹" },
+							{ id: "off", label: "默认", hint: "保持原样" },
+						].map(function (opt) {
+							return h(
+								"label",
+								{ className: "dcs-choice", key: opt.id, title: opt.hint },
+								h("input", {
+									type: "radio",
+									name: "dcs-icon-style",
+									checked: (prefs.iconStyle || "spark") === opt.id,
+									onChange: function () { writePrefs({ iconStyle: opt.id }); },
+								}),
+								h("span", null, opt.label),
+							);
+						}),
+					),
+					h(
+						"div",
+						{ className: "dcs-hint" },
+						"“深度求索中”旁边那个会动的图标。星芒是 Claude 桌面版那八种形态轮流播放；“默认”保留原来的蓝色鲸尾。",
 					),
 				),
 			);

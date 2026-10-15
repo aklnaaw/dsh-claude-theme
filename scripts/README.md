@@ -5,6 +5,9 @@
 | 脚本 | 作用 | 何时跑 |
 | --- | --- | --- |
 | `gen-skin-css.py` | 由调色板定义重新生成 `claude/skin.css` | 改了配色、字号或 `fonts.generated.css` 之后 |
+| `gen-crab.py` | 由像素点阵生成 `claude/crab.generated.css`（问候语旁的小星星） | 改了蟹的画法或配色之后 |
+| `gen-clawd-sprite.py` | 由一份 Lottie 动画生成 `brand-plugin` 里的螃蟹精灵图 | 换了源动画之后 |
+| `gen-spark-data.py` | 由一份动画数据生成 `brand-plugin` 里的八种星芒形态 | 换了源数据之后 |
 | `validate-skin.mjs` | 用真实的 skin-center 清洗器 + 清单校验器验证皮肤 | 每次改动 `claude/` 之后，提交前必跑 |
 | `claude/assets/fonts/build-fonts.sh` | 重新下载 4 个 woff2 字体 | 换字体、加字重、或字体文件损坏时 |
 | `capture-preview.sh` | 用 headless Chrome 截图做预览图 | 需要已认证 URL，只截亮色 |
@@ -54,6 +57,80 @@ light tokens: 97   dark tokens: 97   font decls: 182
 ```bash
 python3 scripts/gen-skin-css.py && node scripts/validate-skin.mjs claude
 ```
+
+---
+
+## gen-clawd-sprite.py
+
+`brand-plugin/lib/client.js` 里的 `CLAWD_SPRITE` 常量是**生成产物**，不要手改。
+
+```bash
+python3 scripts/gen-clawd-sprite.py [源 JSON 路径]
+```
+
+默认源是作者本地的 `~/卡工坊/clawd-loading-animation/Clawd-Laptop.json`——一份 108 KB、43 帧、12fps 的 Lottie 动画。
+
+它做四件事：
+
+1. 用 headless Chrome 加载内联的 lottie-web 运行时，把 43 帧逐帧渲染成 PNG（每批 8 帧，避免一个页面挂 43 个实例）。
+2. 从渲染结果里回读像素网格。源动画是**逐帧切换**的（349 条静态路径、0 条补间），所以能压到原生格子：**34×23** 格，每格 50 Lottie 单位。
+3. 去重——43 帧里只有 **20 个唯一画面**。剩下 23 帧是重复的，用一张序列表指回去。
+4. 把 20 帧拼成一张 **1462×23** 的横向精灵图，PNG 编码后 base64 写回常量。
+
+输出形如：
+
+```
+frames: 43 (20 unique)
+grid:   34 x 23 cells
+sprite: 1462 x 23 px
+png:    1,203 bytes
+```
+
+**为什么要这么绕**：那个 Lottie 要 305 KB 的 lottie-web 才能播，而它只是 20px 的一个图标。压成精灵图后是 **1.2 KB**，用 CSS `steps(43)` 步进，零运行时。代价是丢了矢量性——放大会糊——但指示器只有 20px。
+
+脚本**幂等**：源不变时重跑，写出的常量逐字节相同。
+
+需要 `google-chrome-stable` 在 PATH 上，以及 Python 的 Pillow。
+
+---
+
+## gen-spark-data.py
+
+`brand-plugin/lib/client.js` 里的 `SPARK_ORDER` / `SPARK_DATA` / `SPARK_CSS` 三个常量是**生成产物**，不要手改。
+
+```bash
+python3 scripts/gen-spark-data.py [源 JSON 路径]
+```
+
+默认源是作者本地的 `~/卡工坊/clawd-loading-animation/spark-animations.json`——一份 JSON，八个键各对应一套 `{svg, width, height, frameCount, speed}`。
+
+和螃蟹不同，这些**本来就是 SVG、本来就逐帧**，所以脚本不渲染任何东西，只做文本变换：
+
+1. **给所有 SVG id 加前缀**。八个条带会内联进同一个文档，而 `orbiting` 定义了 `<clipPath id="a">`——不加前缀的话它的 `url(#a)` 会解析到别的条带的定义上。
+2. **生成 `SPARK_DATA`**：每条一个 `{frames, dur, svg}`，SVG 拆成 ≤110 字符的 JS 字符串块。
+3. **生成 `SPARK_CSS`**：把 15.55 秒的周期切成八段，每段只有对应条带 `opacity:1`，其余为 0；条带内部各自用 `translateY(-100%)` + `steps(帧数, jump-end)` 滚动。
+
+**两个关键细节**（都在脚本里注释了原因）：
+
+- **先切块、再转义**。如果先转义再切，块边界可能落在反斜杠和它转义的字符之间，产出的字符串字面量根本解析不了。这个 bug 出过一次。
+- **相邻槽位之间留 `0.001%` 的间隔**。两个相邻槽位若共用同一个百分比，后一个关键帧会覆盖前一个，结果某条永远不隐藏。
+
+输出形如：
+
+```
+thinking    9 frames x  90ms =   810ms
+writing     8 frames x  90ms =   720ms
+waiting    16 frames x 600ms =  9600ms
+...
+cycle  : 15550ms
+svg    : 162,675 chars
+```
+
+**注意 `waiting`**：600ms/帧（1.67fps），而它占 62% 的周期——加权平均只有 5.5fps。这是**官方原值**，不是脚本算错。官方把八种形态设计成按场景单用，连播会把它的低帧率暴露出来。想改的话改源数据的 `speed`，不要改这里。
+
+脚本**幂等**，且带一道校验：生成后如果发现 `RUNNING_CSS` 上方那段注释被吃掉，会**报错退出**而不是静默丢失。
+
+只需要 Python，不需要浏览器。
 
 ---
 
