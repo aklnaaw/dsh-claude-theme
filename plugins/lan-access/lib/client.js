@@ -91,6 +91,7 @@ window.__ModuleLoader__.load({
 			"background:transparent;color:var(--dsw-alias-label-primary,#141413)}",
 			".dla-btn2.primary{background:var(--dsw-alias-brand-primary,#d97757);",
 			"border-color:var(--dsw-alias-brand-primary,#d97757);color:#fff}",
+			".dla-btn2:disabled{opacity:.55;cursor:default}",
 
 			".dla-addr{font-size:12px;font-family:'JetBrains Mono',ui-monospace,monospace;",
 			"color:var(--dsw-alias-label-secondary,#6c6a64);margin-top:4px}",
@@ -128,8 +129,15 @@ window.__ModuleLoader__.load({
 			var busyState = React.useState(false);
 			var busy = busyState[0];
 			var setBusy = busyState[1];
+			var refreshingState = React.useState(false);
+			var refreshing = refreshingState[0];
+			var setRefreshing = refreshingState[1];
 
-			function load() {
+			/* `quiet` is the mount-time call: it must not flip the button into its
+			 * busy state, or the panel would open looking like it was already
+			 * working. The manual refresh passes nothing, so it shows the state. */
+			function load(quiet) {
+				if (quiet !== true) setRefreshing(true);
 				requestJson(ROUTE_STATUS).then(function (result) {
 					if (!result.ok || !result.body || result.body.ok !== true) {
 						setError("状态读取失败");
@@ -137,10 +145,11 @@ window.__ModuleLoader__.load({
 					}
 					setError("");
 					setInfo(result.body);
-				}).catch(function () { setError("状态读取失败"); });
+				}).catch(function () { setError("状态读取失败"); })
+					.then(function () { setRefreshing(false); });
 			}
 
-			React.useEffect(load, []);
+			React.useEffect(function () { load(true); }, []);
 
 			function toggle(enabled) {
 				setBusy(true);
@@ -155,7 +164,9 @@ window.__ModuleLoader__.load({
 						return;
 					}
 					setError("");
-					load();
+					/* Quiet: the switch already reports its own progress, and the
+					 * URL does not change here -- only `pendingBind` does. */
+					load(true);
 				}).catch(function () { setBusy(false); setError("写入失败"); });
 			}
 
@@ -243,19 +254,38 @@ window.__ModuleLoader__.load({
 				{ className: "dla-btn2", type: "button", onClick: props.onClose, key: "c" },
 				"关闭",
 			);
+			/* The URL carries a token minted once per DSH process. Restarting DSH
+			 * mints a new one, but a page that stays open keeps showing the old
+			 * code -- it is only fetched on mount. This button re-reads it, so a
+			 * restart does not require reloading the whole page. */
+			var refresh = h(
+				"button",
+				{
+					className: "dla-btn2",
+					type: "button",
+					onClick: function () { load(); },
+					disabled: refreshing,
+					key: "r",
+				},
+				refreshing ? "刷新中…" : "刷新",
+			);
+			var copy = h(
+				"button",
+				{
+					className: "dla-btn2 primary", type: "button", key: "cp",
+					onClick: function () {
+						try { navigator.clipboard.writeText(info && info.url); } catch (e) { /* no clipboard */ }
+					},
+				},
+				"复制链接",
+			);
+
 			if (info && info.reachable && info.url) {
 				body.push(
-					h("div", { className: "dla-row", key: "foot" },
-						h("button", {
-							className: "dla-btn2 primary", type: "button",
-							onClick: function () {
-								try { navigator.clipboard.writeText(info.url); } catch (e) { /* no clipboard */ }
-							},
-						}, "复制链接"),
-						close),
+					h("div", { className: "dla-row", key: "foot" }, copy, refresh, close),
 				);
 			} else {
-				body.push(h("div", { className: "dla-row", key: "foot2" }, close));
+				body.push(h("div", { className: "dla-row", key: "foot2" }, refresh, close));
 			}
 
 			var card = h(
