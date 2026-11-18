@@ -100,6 +100,16 @@ Restart, open **Phone access** in the sidebar, turn on the switch, and restart o
 
 For more detailed installation, troubleshooting and rollback steps, see [`INSTALL.md`](INSTALL.md). **Too lazy? Hand the installation to DSH, Claude Code or Codex.**
 
+### A few things about installation
+
+**This repository is not published to npm.** Every plugin is installed from a local clone, with `link:` pointing at *your own* clone path — that is what the commands above do. Packages with the same names on npm are not from here; do not mix them up.
+
+**Do not install with a `github:` dependency plus `link:node_modules\<repo>\<subdir>`.** The repo root has no `package.json`; we have not tested that combination and do not support it. One user reported it failing on Windows: `pnpm` cannot replace the directories while DSH holds them and hits `EPERM`, after which those subdirectories are stuck in a delete-pending state that only clears once DSH is fully quit — while the UI only shows a bare "no write permission".
+
+**This project is developed and maintained on Linux.** We cannot verify Windows-specific behaviour. The paragraph above relays someone else's report, not a conclusion we reproduced. If you hit trouble on Windows, an issue describing the symptoms is welcome, but please understand we may not be able to follow it to the end.
+
+If you already use that install shape and it works, there is no need to migrate — just do not assume DSH or these plugins are broken first if something goes wrong.
+
 ## How the pieces fit together
 
 - The display name, subtitle and avatar live in `dsh-claude-brand.prefs`. The sidebar popover and Claude-X edit the same record, so both stay in sync.
